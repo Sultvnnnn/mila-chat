@@ -30,18 +30,21 @@ export async function POST(req: Request) {
       .map((doc: any) => `Info: ${doc.title}\nDetail: ${doc.content}`)
       .join("\n\n");
 
-    const hariIni = new Date().toLocaleDateString("id-ID", {
+    const hariIni = new Date().toLocaleString("id-ID", {
+      timeZone: "Asia/Jakarta",
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
     // claude's response
     const response = await anthropic.messages.create({
       model: "claude-3-haiku-20240307",
       max_tokens: 500,
-      system: `Kamu adalah asisten customer service untuk MULA Yoga Studio. Gaya komunikasi kamu harus mengayomi (nurturing), profesional, dan ramah (friendly).
+      system: `Kamu adalah Mila, asisten virtual untuk MULA Yoga Studio. Gaya komunikasi kamu harus mengayomi (nurturing), profesional, dan ramah (friendly).
       Hari ini adalah: ${hariIni}.
 
       Gunakan HANYA informasi berikut untuk menjawab pertanyaan:
