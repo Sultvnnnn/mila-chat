@@ -167,32 +167,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-/*
-qna test
-1.  q: aku tadi join kelas jam 09.00 pagi, tapi sekarang udah jam 07.30 dan tiba-tiba ada meeting mendadak. Masih bisa reschedule nggak ya?
-    a: Maaf Ka, sayangnya tidak bisa melakukan reschedule untuk kelas yang sudah berlalu. Berdasarkan informasi di aplikasi Kuyy, reschedule hanya bisa dilakukan maksimal 3 jam sebelum kelas dimulai. Sedangkan untuk kelas yang tadi pagi jam 09.00, itu sudah lewat dari 3 jam yang diizinkan. Jadi saat ini sayangnya tidak bisa melakukan reschedule ya Ka. Tapi tenang, jika sewaktu-waktu ada kelas yang kamu tidak bisa ikuti, kamu akan tetap mendapatkan reschedule pass yang bisa digunakan untuk kelas lain dalam jangka waktu 1 bulan. Semoga di lain waktu kamu bisa ikut kelas yoga dengan lancar ya Ka. Ada yang lain yang bisa Mila bantu? 🙏
-
-2.  q: Mila, aku tinggalnya di daerah Tangerang nih. Bagusnya aku ambil kelas di KAIA atau Svasana D\'Andara ya? Terus fasilitasnya bedanya apa?
-    a: Halo Ka! Selamat datang di MULA Yoga Studio 🙏 
-    Kalau Kakak tinggalnya di area Tangerang, saya sarankan untuk pilih KAIA Studio di Jakarta Selatan. Jarak ke KAIA Studio akan lebih dekat dari Tangerang dibanding ke Svasana D'Andara yang ada di Depok.
-    Nah, untuk fasilitasnya, KAIA Studio menyediakan matras, block, strap, dan bahkan ada fasilitas parkir gratis. Sedangkan di Svasana D'Andara, Kakak perlu membawa perlengkapan yoga sendiri. Tapi harga kelas di Svasana D'Andara lebih terjangkau, ada diskon 20% dengan kode YOGADIANDARA di aplikasi Kuyy.
-    Jadi secara keseluruhan, KAIA Studio lebih lengkap fasilitasnya tapi harga Svasana D'Andara lebih murah. Cocok banget untuk Kakak yang tinggal di Tangerang, KAIA Studio lebih recommended. Ada lagi yang bisa Mila bantu, Ka? 🌿
-
-3.  q: Ka, aku mau fokus benerin postur badan tapi yang nggak terlalu bikin ngos-ngosan, ada rekomendasi kelas? Terus aku harus bawa apa aja ke studio?
-    a: Halo Ka! Untuk memperbaiki postur tanpa terlalu capek, Mila rekomendasikan kelas Hatha for Flexibility atau Hatha Yoga with Props. 🌿
-    Di kelas-kelas itu, nanti Kakak fokus pada gerakan-gerakan yang membuka dan meluruskan tulang belakang serta melenturkan otot-otot. Tidak terlalu dinamis seperti Vinyasa, jadi santai tapi tetap efektif.
-    Untuk perlengkapan, yang perlu Kakak bawa ke studio adalah:
-      - Handuk
-      - Botol minum (air gratis tersedia di studio)
-    Semua peralatan yoga seperti matras, blok, dan strap sudah disediakan di studio. Jadi Kakak tinggal datang, yoga, dan nikmati manfaatnya! 
-    Ada lagi yang bisa Mila bantu, Ka? 🙏
-
-4.  q: Duh Ka, aku baru sadar kalau kelas yang aku mau besok ternyata udah penuh di aplikasi. Kalau aku langsung dateng ke studio (walk-in) bisa nggak ya?
-    a: Halo Ka, mohon maaf ya Kakak tidak bisa langsung datang ke studio untuk mengambil slot kelas yang penuh di aplikasi. Sesuai aturan yang berlaku di MULA Yoga Studio, semua reservasi kelas harus dilakukan melalui aplikasi Kuyy paling lambat 3 jam sebelum kelas dimulai. 🙏
-    Kalau Kakak sempat membooking kelas ini tapi kemudian ingin mengubah jadwal, Kakak bisa mencoba melakukan reschedule di aplikasi Kuyy. Batas waktu reschedule adalah maksimal 3 jam sebelum kelas dimulai. Panduan lengkap cara reschedule ada di link ini ya Ka: https://www.instagram.com/p/DQscjB4El0a/
-    Semoga informasi ini membantu. Kalau masih ada yang bingung, jangan ragu tanya lagi ke Mila ya Ka. Mila selalu siap membantu! 🌿
-
-5. q: I joined the class at 9:00 a.m., but now it's already 7:30 a.m. and suddenly there's an unexpected meeting. Can I still reschedule?
-
-*/
