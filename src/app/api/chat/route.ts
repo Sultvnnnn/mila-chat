@@ -68,7 +68,11 @@ export async function POST(req: Request) {
         ? firstBlock.text
         : "Maaf, Mila sedang mediasi sebentar. Coba tanya lagi ya Ka? 🙏";
 
-    replyText = replyText.replace(/\*[^*]+\*/g, "").trim();
+    replyText = replyText
+      .replace(/\[(IF|JIKA|DETECT|START|END|USER).*?\]/gi, "")
+      .trim();
+
+    replyText = replyText.replace(/^\n+/, "");
 
     return NextResponse.json({ reply: replyText });
   } catch (error) {
