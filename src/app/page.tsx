@@ -1,101 +1,266 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import {
+  Send,
+  Sparkles,
+  User,
+  Moon,
+  Sun,
+  MoreVertical,
+  RefreshCw,
+} from "lucide-react";
+import { useTheme } from "next-themes";
+import ReactMarkdown from "react-markdown";
+import { motion, AnimatePresence } from "framer-motion";
+
+// komponen Shadcn
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
+type Message = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: Date;
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const { theme, setTheme } = useTheme();
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "intro",
+      role: "assistant",
+      content:
+        "Halo Ka! 👋 Aku **MILA**. Ada yang bisa aku bantu seputar jadwal yoga, harga, atau lokasi studio hari ini?",
+      createdAt: new Date(),
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input,
+      createdAt: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMessage.content }),
+      });
+
+      const data = await response.json();
+
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.reply,
+        createdAt: new Date(),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: "assistant",
+          content:
+            "Maaf Ka, koneksi Mila agak gangguan. Coba tanya lagi ya? 🙏",
+          createdAt: new Date(),
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex h-[100dvh] flex-col bg-slate-50 dark:bg-slate-950">
+      {/* --- HEADER --- */}
+      <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:border-slate-800">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-9 w-9 border-2 border-purple-100 dark:border-purple-900">
+            <AvatarImage src="/bot-avatar.png" alt="Mila" />
+            <AvatarFallback className="bg-purple-600 text-white">
+              <Sparkles size={16} />
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <h1 className="text-sm font-semibold text-foreground">MILA</h1>
+            <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+              </span>
+              Online
+            </span>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="rounded-full"
+          >
+            <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </Button>
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <MoreVertical size={20} />
+          </Button>
+        </div>
+      </header>
+
+      {/* --- CHAT AREA --- */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="mx-auto flex max-w-3xl flex-col gap-6 pb-20">
+          <AnimatePresence initial={false}>
+            {messages.map((m) => (
+              <motion.div
+                key={m.id}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+              >
+                {/* Avatar */}
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarFallback
+                    className={
+                      m.role === "assistant"
+                        ? "bg-purple-600 text-white"
+                        : "bg-slate-200 text-slate-600 dark:bg-slate-800"
+                    }
+                  >
+                    {m.role === "assistant" ? (
+                      <Sparkles size={14} />
+                    ) : (
+                      <User size={14} />
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+
+                {/* Bubble Chat */}
+                <div
+                  className={`flex max-w-[85%] flex-col gap-1 sm:max-w-[75%]`}
+                >
+                  <Card
+                    className={`border-none px-4 py-3 text-sm shadow-sm ${
+                      m.role === "user"
+                        ? "bg-primary text-primary-foreground rounded-tr-none"
+                        : "bg-background border border-border/50 rounded-tl-none dark:bg-slate-900"
+                    }`}
+                  >
+                    <div className="prose prose-sm dark:prose-invert prose-p:leading-relaxed prose-pre:bg-slate-800 prose-pre:text-slate-50 max-w-none break-words">
+                      <ReactMarkdown
+                        components={{
+                          ul: ({ ...props }) => (
+                            <ul
+                              className="list-disc pl-4 space-y-1 mb-2"
+                              {...props}
+                            />
+                          ),
+                          ol: ({ ...props }) => (
+                            <ol
+                              className="list-decimal pl-4 space-y-1 mb-2"
+                              {...props}
+                            />
+                          ),
+                          p: ({ ...props }) => (
+                            <p className="mb-2 last:mb-0" {...props} />
+                          ),
+                        }}
+                      >
+                        {m.content}
+                      </ReactMarkdown>
+                    </div>
+                  </Card>
+                  <span
+                    suppressHydrationWarning
+                    className={`text-[10px] text-muted-foreground ${m.role === "user" ? "text-right" : "text-left"}`}
+                  >
+                    {m.createdAt.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {/* Loading Skeleton */}
+          {isLoading && (
+            <div className="flex gap-3">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-purple-600 text-white">
+                  <Sparkles size={14} />
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-[200px] rounded-xl rounded-tl-none" />
+                <Skeleton className="h-4 w-[150px]" />
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* --- INPUT AREA --- */}
+      <div className="sticky bottom-0 bg-background/80 p-4 backdrop-blur-lg border-t dark:border-slate-800">
+        <div className="mx-auto max-w-3xl">
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Tanya jadwal, harga, atau lokasi..."
+              disabled={isLoading}
+              className="rounded-full bg-slate-100 border-transparent focus-visible:ring-purple-500 px-5 dark:bg-slate-900 dark:border-slate-800"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={isLoading || !input.trim()}
+              className="rounded-full shrink-0 bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              {isLoading ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </form>
+          <p className="mt-2 text-center text-[10px] text-muted-foreground">
+            Mila Yoga Assistant © 2026.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
