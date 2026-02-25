@@ -51,20 +51,29 @@
 │   │   ├── fonts
 │   │   │   ├── GeistMonoVF.woff
 │   │   │   └── GeistVF.woff
-│   │   ├── favicon.ico
 │   │   ├── globals.css
 │   │   ├── layout.tsx                # Root layout
-│   │   └── page.tsx                  # Chat UI (Week 3)
+│   │   └── page.tsx                  # Chat UI
+│   ├── components
+│   │   ├── ui
+│   │   │   ├── avatar.tsx            # Avatar component (shadcn/ui)
+│   │   │   ├── button.tsx            # Button component (shadcn/ui)
+│   │   │   ├── card.tsx              # Card component (shadcn/ui)
+│   │   │   ├── input.tsx             # Input component (shadcn/ui)
+│   │   │   └── skeleton.tsx          # Skeleton loading (shadcn/ui)
+│   │   └── theme-provider.tsx        # Dark/light mode provider
 │   └── lib
 │       ├── data
 │       │   └── yogaData.ts           # Q&A knowledge base (jadwal, harga, lokasi, dll.)
 │       ├── prompts
 │       │   └── systemPrompt.ts       # MILA's persona, rules & business logic prompt
 │       ├── openai.ts                 # OpenAI embedding helper
-│       └── supabase.ts               # Supabase client
+│       ├── supabase.ts               # Supabase client
+│       └── utils.ts                  # Shared utility functions (cn, dll.)
 ├── .eslintrc.json
 ├── .gitignore
 ├── README.md
+├── components.json                   # shadcn/ui config
 ├── next.config.mjs
 ├── package-lock.json
 ├── package.json
