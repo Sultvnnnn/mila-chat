@@ -41,18 +41,36 @@
 ## 📂 Project Structure
 
 ```
-├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── chat/       # Main RAG & Logic Pipeline
-│   │   │   └── seed/       # Knowledge Base Seeding Script
-│   │   └── page.tsx        # Chat Interface (In Progress)
-│   ├── lib/
-│   │   ├── data/
-│   │   │   └── yogaData.ts # Q&A Knowledge Base
-│   │   ├── openai.ts       # Embedding Generator
-│   │   └── supabase.ts     # DB Connection
-└── ...
+├── src
+│   ├── app
+│   │   ├── api
+│   │   │   ├── chat
+│   │   │   │   └── route.ts          # RAG pipeline: embed → search → Claude → reply
+│   │   │   └── seed
+│   │   │       └── route.ts          # One-time script to seed knowledge base to Supabase
+│   │   ├── fonts
+│   │   │   ├── GeistMonoVF.woff
+│   │   │   └── GeistVF.woff
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx                # Root layout
+│   │   └── page.tsx                  # Chat UI (Week 3)
+│   └── lib
+│       ├── data
+│       │   └── yogaData.ts           # Q&A knowledge base (jadwal, harga, lokasi, dll.)
+│       ├── prompts
+│       │   └── systemPrompt.ts       # MILA's persona, rules & business logic prompt
+│       ├── openai.ts                 # OpenAI embedding helper
+│       └── supabase.ts               # Supabase client
+├── .eslintrc.json
+├── .gitignore
+├── README.md
+├── next.config.mjs
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── tailwind.config.ts
+└── tsconfig.json
 ```
 
 ---
