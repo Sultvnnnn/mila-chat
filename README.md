@@ -80,8 +80,8 @@
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Sultvnnnn/mula-yoga-ai.git
-cd mula-yoga-ai
+git clone https://github.com/Sultvnnnn/mila-chat.git
+cd mila-chat
 ```
 
 ### 2. Install dependencies
