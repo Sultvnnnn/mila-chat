@@ -40,7 +40,6 @@
 
 ## 📂 Project Structure
 
-```
 ├── src
 │   ├── app
 │   │   ├── api
@@ -59,14 +58,19 @@
 │   │   │   ├── avatar.tsx            # Avatar component (shadcn/ui)
 │   │   │   ├── button.tsx            # Button component (shadcn/ui)
 │   │   │   ├── card.tsx              # Card component (shadcn/ui)
+│   │   │   ├── input-group.tsx       # Input group component (shadcn/ui)
 │   │   │   ├── input.tsx             # Input component (shadcn/ui)
-│   │   │   └── skeleton.tsx          # Skeleton loading (shadcn/ui)
+│   │   │   ├── skeleton.tsx          # Skeleton loading (shadcn/ui)
+│   │   │   └── textarea.tsx          # Textarea component (shadcn/ui)
+│   │   ├── AnimatedGreeting.tsx      # Typewriter greeting animation
+│   │   ├── ThemeToggle.tsx           # Dark/light mode toggle button
 │   │   └── theme-provider.tsx        # Dark/light mode provider
 │   └── lib
 │       ├── data
 │       │   └── yogaData.ts           # Q&A knowledge base (jadwal, harga, lokasi, dll.)
 │       ├── prompts
 │       │   └── systemPrompt.ts       # MILA's persona, rules & business logic prompt
+│       ├── constants.ts              # App-wide constants (greeting phrases, dll.)
 │       ├── openai.ts                 # OpenAI embedding helper
 │       ├── supabase.ts               # Supabase client
 │       └── utils.ts                  # Shared utility functions (cn, dll.)
@@ -80,7 +84,6 @@
 ├── postcss.config.mjs
 ├── tailwind.config.ts
 └── tsconfig.json
-```
 
 ---
 
@@ -124,7 +127,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 - [x] ~~Week 1: Project Setup & Database Schema~~
 - [x] ~~Week 2: Backend RAG Logic, Seeding, & Persona Tuning~~
-- [ ] Week 3: Frontend UI (Chat Bubble, Animations, Responsive Design)
+- [x] ~~Week 3: Frontend UI (Chat Bubble, Animations, Responsive Design)~~
 - [ ] Week 4: Deployment & Final Polish
 
 ---
