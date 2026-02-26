@@ -9,27 +9,55 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
 
+//? LANGUAGE DETECTOR
+const isEnglishLanguage = (text: string): boolean => {
+  const englishPattern =
+    /\b(the|is|are|am|what|where|when|why|how|can|could|would|should|i|you|my|your|help|schedule|price|cost|class)\b/i;
+  return englishPattern.test(text);
+};
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { message } = body;
 
+    // detect language
+    const isEnglish = isEnglishLanguage(message);
+    const langCode = isEnglish ? "EN" : "ID";
+
+    // generate embedding
     const query = `${message}`;
     const embedding = await generateEmbedding(query);
 
     // hybrid search
-    const { data: documents, error } = await supabase.rpc("hybrid_search", {
-      query_embedding: embedding,
-      query_text: query,
-      match_count: 6,
-    });
+    let documents;
+    let searchError;
 
-    if (error) {
-      console.error("Error Supabase:", error);
-      throw error;
+    if (isEnglish) {
+      const { data, error } = await supabase.rpc("match_documents_en", {
+        query_embedding: embedding,
+        match_threshold: 0.5,
+        match_count: 6,
+      });
+      documents = data;
+      searchError = error;
+    } else {
+      const { data, error } = await supabase.rpc("hybrid_search", {
+        query_embedding: embedding,
+        query_text: query,
+        match_count: 6,
+      });
+      documents = data;
+      searchError = error;
+    }
+
+    if (searchError) {
+      console.error(`Error Supabase: ${JSON.stringify(searchError)}`);
+      throw searchError;
     }
 
     const now = new Date();
+    const locale = isEnglish ? "en-US" : "id-ID";
     const options: Intl.DateTimeFormatOptions = {
       weekday: "long",
       year: "numeric",
@@ -41,17 +69,22 @@ export async function POST(req: Request) {
       hour12: false,
     };
 
-    const timeString = now.toLocaleString("id-ID", options);
-    const hariIni = now.toLocaleDateString("id-ID", {
+    const timeString = now.toLocaleString(locale, options);
+    const hariIni = now.toLocaleDateString(locale, {
       weekday: "long",
       timeZone: "Asia/Jakarta",
     });
 
     const contextText = documents
-      ?.map((doc: any) => `SUMBER: ${doc.title}\nISI: ${doc.content}`)
+      ?.map((doc: any) => `INFO: ${doc.content}`)
       .join("\n\n");
 
-    const system = buildSystemPrompt(hariIni, timeString, contextText || "");
+    const system = buildSystemPrompt(
+      langCode,
+      hariIni,
+      timeString,
+      contextText || "",
+    );
 
     // claude's response
     const response = await anthropic.messages.create({
@@ -70,9 +103,8 @@ export async function POST(req: Request) {
 
     replyText = replyText
       .replace(/\[(IF|JIKA|DETECT|START|END|USER).*?\]/gi, "")
-      .trim();
-
-    replyText = replyText.replace(/^\n+/, "");
+      .trim()
+      .replace(/^\n+/, "");
 
     return NextResponse.json({ reply: replyText });
   } catch (error) {

@@ -2,18 +2,29 @@
 
 import { useState, useRef, useEffect } from "react";
 import {
-  Send,
+  ArrowUp,
   Sparkles,
   Compass,
   Calendar,
   CreditCard,
   MapPin,
+  Dumbbell,
+  Sun,
+  Moon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "next-themes";
+import TextareaAutosize from "react-textarea-autosize";
+import { AnimatedGreeting } from "@/components/AnimatedGreeting";
+import { ThemeToggle } from "@/components/ThemeToggle";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+} from "@/components/ui/input-group";
 
 type Message = {
   id: string;
@@ -24,19 +35,27 @@ type Message = {
 };
 
 export default function Home() {
+  const { theme, setTheme } = useTheme();
   const [hasStarted, setHasStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll logic
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading, hasStarted]);
+
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (!isMobile) {
+      inputRef.current?.focus();
+    }
+  }, []);
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -64,7 +83,10 @@ export default function Home() {
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.reply,
+        content:
+          data.reply ||
+          data.error ||
+          "Maaf Ka, Mila sedang ada gangguan koneksi. 🙏",
         createdAt: new Date(),
         isStreaming: true,
       };
@@ -85,9 +107,15 @@ export default function Home() {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(input);
+    }
+  };
+
   return (
     <>
-      {/* CSS KHUSUS BUAT HIDE SCROLLBAR */}
       <style jsx global>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
@@ -96,201 +124,267 @@ export default function Home() {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
+
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+          animation: none;
+          mix-blend-mode: normal;
+        }
       `}</style>
 
-      {/* CONTAINER UTAMA - SERIF FONT */}
-      <div className="flex h-[100dvh] flex-col bg-black text-zinc-100 font-serif selection:bg-indigo-500/30">
-        {/* HEADER */}
-        {/* <header className="sticky top-0 z-10 flex h-14 items-center justify-between px-6 bg-black/90 backdrop-blur-md border-b border-white/5">
+      {/* CONTAINER UTAMA START */}
+      <div className="flex h-[100dvh] flex-col bg-background text-foreground font-serif selection:bg-primary/30">
+        {/* HEADER START */}
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between px-6 bg-background/90 backdrop-blur-md border-b border-border">
           <div className="flex items-center gap-2">
             {hasStarted && (
-              <span className="text-lg font-medium tracking-wide bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent animate-in fade-in">
-                MILA
+              <span className="text-base font-semibold tracking-[0.2em] text-foreground/80 animate-in fade-in">
+                Mila
               </span>
             )}
           </div>
-          <Avatar className="h-7 w-7 ring-1 ring-white/20">
-            <AvatarImage src="/bot-avatar.png" />
-            <AvatarFallback className="bg-zinc-900 text-[10px] text-white">
-              SA
-            </AvatarFallback>
-          </Avatar>
-        </header> */}
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+          </div>
+        </header>
+        {/* HEADER END */}
 
-        {/* CHAT AREA (Scrollable) */}
-        <div className="flex-1 overflow-y-auto px-4 w-full max-w-2xl mx-auto hide-scrollbar">
+        {/* CHAT AREA START */}
+        <div
+          id="chat-scroll-container"
+          className="flex-1 overflow-y-auto px-4 w-full max-w-2xl mx-auto hide-scrollbar"
+        >
           {!hasStarted ? (
             <div className="flex h-full flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500 pb-32">
               <div className="text-center space-y-3">
-                <div className="inline-flex p-3 rounded-full bg-zinc-900 border border-zinc-800 mb-2">
-                  <Sparkles className="h-5 w-5 text-indigo-300" />
+                <div className="inline-flex p-3 rounded-full bg-secondary border border-border mb-2">
+                  <Sparkles className="h-5 w-5 text-indigo-400" />
                 </div>
-                <h1 className="text-xl italic">
-                  Apa yang bisa Mila bantu hari ini?
-                </h1>
+                <AnimatedGreeting />
               </div>
 
-              <div className="flex flex-wrap justify-center gap-2 w-full max-w-md">
-                <SuggestionButton
-                  icon={<Calendar className="h-3 w-3 text-blue-400" />}
-                  text="Jadwal Yoga"
-                  onClick={() =>
-                    handleSend("Jadwal kelas yoga hari ini apa aja?")
-                  }
-                />
-                <SuggestionButton
-                  icon={<CreditCard className="h-3 w-3 text-green-400" />}
-                  text="Cek Harga"
-                  onClick={() => handleSend("Berapa harga paket member?")}
-                />
-                <SuggestionButton
-                  icon={<MapPin className="h-3 w-3 text-red-400" />}
-                  text="Lokasi"
-                  onClick={() => handleSend("Lokasi studio di mana?")}
-                />
-                <SuggestionButton
-                  icon={<Compass className="h-3 w-3 text-purple-400" />}
-                  text="Pemula"
-                  onClick={() => handleSend("Ada kelas untuk pemula?")}
-                />
+              {/* SUGGEST BUTTON START */}
+              <div className="flex flex-wrap justify-center gap-2 w-full max-w-sm mx-auto px-2">
+                {[
+                  {
+                    icon: <Calendar className="h-3.5 w-3.5" />,
+                    text: "Jadwal Yoga",
+                    prompt: "Jadwal kelas yoga hari ini apa aja?",
+                  },
+                  {
+                    icon: <CreditCard className="h-3.5 w-3.5" />,
+                    text: "Cek Harga",
+                    prompt: "Berapa harga paket member?",
+                  },
+                  {
+                    icon: <MapPin className="h-3.5 w-3.5" />,
+                    text: "Lokasi",
+                    prompt: "Lokasi studio di mana?",
+                  },
+                  {
+                    icon: <Compass className="h-3.5 w-3.5" />,
+                    text: "Pemula",
+                    prompt: "Ada kelas untuk pemula?",
+                  },
+                  {
+                    icon: <Dumbbell className="h-3.5 w-3.5" />,
+                    text: "Jenis Kelas",
+                    prompt: "Kelas apa saja yang tersedia di MULA Yoga?",
+                  },
+                ].map(({ icon, text, prompt }) => (
+                  <Button
+                    key={text}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSend(prompt)}
+                    className="rounded-full border-border/60 bg-background/60 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-accent hover:border-border transition-all duration-200 gap-1.5 text-xs font-normal"
+                  >
+                    {icon}
+                    {text}
+                  </Button>
+                ))}
               </div>
+              {/* SUGGEST BUTTON END */}
             </div>
           ) : (
-            /* LIST CHAT DENGAN PADDING BOTTOM LEBIH BESAR (pb-40) */
             <div className="flex flex-col gap-6 py-6 pb-40">
               <AnimatePresence initial={false}>
-                {messages.map((m) => (
-                  <motion.div
-                    key={m.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    {m.role === "assistant" && (
-                      <div className="h-6 w-6 shrink-0 rounded-full bg-indigo-900/50 border border-indigo-500/30 flex items-center justify-center mt-1">
-                        <Sparkles size={12} className="text-indigo-300" />
-                      </div>
-                    )}
+                {messages.map((m, index) => {
+                  const isLatest = index === messages.length - 1;
 
-                    <div className={`flex flex-col gap-1 max-w-[85%]`}>
-                      <div
-                        className={`text-sm leading-relaxed ${
-                          m.role === "user"
-                            ? "bg-zinc-800 text-white px-4 py-2 rounded-2xl rounded-tr-sm"
-                            : "text-zinc-200 pl-0 py-0"
-                        }`}
-                      >
-                        {m.role === "assistant" && m.isStreaming ? (
-                          <TypewriterEffect content={m.content} />
-                        ) : (
-                          <div className="prose prose-sm prose-invert prose-p:mb-2 last:prose-p:mb-0 max-w-none font-serif">
-                            <ReactMarkdown>{m.content}</ReactMarkdown>
-                          </div>
-                        )}
+                  return (
+                    <motion.div
+                      key={m.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div className={`flex flex-col gap-1 max-w-[85%]`}>
+                        <div
+                          className={`text-sm leading-relaxed ${
+                            m.role === "user"
+                              ? "bg-primary text-primary-foreground px-4 py-2 rounded-2xl rounded-tr-sm"
+                              : "text-foreground pl-0 py-0"
+                          }`}
+                        >
+                          {m.role === "user" ? (
+                            /* USER */
+                            <div className="whitespace-pre-wrap font-sans">
+                              {m.content}
+                            </div>
+                          ) : (
+                            /* AI */
+                            <div className="flex flex-col items-start gap-1">
+                              {m.isStreaming ? (
+                                <TypewriterEffect content={m.content} />
+                              ) : (
+                                <div className="font-serif text-sm">
+                                  <ReactMarkdown
+                                    components={{
+                                      ul: ({ ...props }) => (
+                                        <ul
+                                          className="list-disc pl-5 my-2 space-y-1"
+                                          {...props}
+                                        />
+                                      ),
+                                      ol: ({ ...props }) => (
+                                        <ol
+                                          className="list-decimal pl-5 my-2 space-y-1"
+                                          {...props}
+                                        />
+                                      ),
+                                      li: ({ ...props }) => (
+                                        <li
+                                          className="leading-relaxed"
+                                          {...props}
+                                        />
+                                      ),
+                                      p: ({ ...props }) => (
+                                        <p
+                                          className="mb-2 last:mb-0"
+                                          {...props}
+                                        />
+                                      ),
+                                    }}
+                                  >
+                                    {m.content}
+                                  </ReactMarkdown>
+                                </div>
+                              )}
+
+                              {isLatest && m.role === "assistant" && (
+                                <div className="flex items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2">
+                                  <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
 
               {isLoading && (
                 <div className="flex gap-3 animate-pulse ml-8">
-                  <div className="h-1.5 w-1.5 bg-zinc-600 rounded-full animate-bounce"></div>
-                  <div className="h-1.5 w-1.5 bg-zinc-600 rounded-full animate-bounce delay-75"></div>
-                  <div className="h-1.5 w-1.5 bg-zinc-600 rounded-full animate-bounce delay-150"></div>
+                  <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce"></div>
+                  <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce delay-75"></div>
+                  <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce delay-150"></div>
                 </div>
               )}
               <div ref={messagesEndRef} />
             </div>
           )}
         </div>
+        {/* CHAT AREA END */}
 
-        {/* FLOATING INPUT */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 pt-10 bg-gradient-to-t from-black via-black/95 to-transparent">
+        {/* INPUT GROUP TEXTAREA START */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 pt-6 bg-background border-t border-border/40">
           <div className="max-w-2xl mx-auto">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSend(input);
               }}
-              className="relative flex items-center gap-2 bg-[#1a1a1a] p-1.5 rounded-full border border-zinc-800 shadow-xl transition-all focus-within:border-zinc-600"
+              className="w-full"
             >
-              <div className="pl-3 text-zinc-500">
-                <Sparkles size={16} />
-              </div>
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Tanya Mila..."
-                className="flex-1 border-none bg-transparent shadow-none text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-0 h-10 font-serif"
-                disabled={isLoading}
-                autoFocus
-              />
-              <Button
-                type="submit"
-                size="icon"
-                disabled={!input.trim() || isLoading}
-                className="rounded-full h-9 w-9 bg-zinc-100 text-black hover:bg-zinc-300 transition-all disabled:opacity-30 disabled:bg-zinc-700"
-              >
-                <Send size={14} />
-              </Button>
+              <InputGroup className="bg-muted border border-border shadow-sm rounded-xl focus-within:ring-1 focus-within:ring-primary/50 transition-all">
+                <TextareaAutosize
+                  ref={inputRef}
+                  data-slot="input-group-control"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={isLoading}
+                  autoFocus
+                  minRows={1}
+                  maxRows={8}
+                  className="flex field-sizing-content min-h-12 w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm transition-[color,box-shadow] outline-none placeholder:text-muted-foreground font-serif"
+                  placeholder="Halo Mila ..."
+                />
+                <InputGroupAddon align="block-end" className="p-2">
+                  <InputGroupButton
+                    type="submit"
+                    disabled={!input.trim() || isLoading}
+                    className="ml-auto rounded-full h-8 w-8 transition-all"
+                    size="icon-sm"
+                    variant="default"
+                  >
+                    <ArrowUp
+                      size={16}
+                      className={isLoading ? "opacity-50" : ""}
+                    />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
             </form>
-            <p className="mt-3 text-center text-[10px] italic text-zinc-500 font-sans tracking-wide">
-              Mila mungkin salah. Periksa kembali responnya.
+            <p className="mt-3 text-center text-[10px] text-muted-foreground font-sans tracking-wide">
+              Mila adalah AI dan bisa keliru. Harap periksa kembali respons.
             </p>
           </div>
         </div>
+        {/* INPUT GROUP TEXTAREA END */}
       </div>
+      {/* CONTAINER UTAMA END */}
     </>
   );
 }
 
-// --- SUB KOMPONEN ---
+//? SUB KOMPONEN
 
-function SuggestionButton({
-  icon,
-  text,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  text: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-2 rounded-full bg-[#1a1a1a] border border-zinc-800 px-3 py-2 text-xs font-medium text-zinc-400 transition-all hover:bg-[#252525] hover:border-zinc-600 hover:text-zinc-200 active:scale-95"
-    >
-      {icon}
-      <span>{text}</span>
-    </button>
-  );
-}
-
-function TypewriterEffect({ content }: { content: string }) {
+function TypewriterEffect({ content = "" }: { content?: string }) {
   const [displayedContent, setDisplayedContent] = useState("");
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
+    if (!content) return;
     if (index < content.length) {
       const timeout = setTimeout(() => {
         setDisplayedContent((prev) => prev + content.charAt(index));
         setIndex((prev) => prev + 1);
+
+        const container = document.getElementById("chat-scroll-container");
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
       }, 5);
       return () => clearTimeout(timeout);
     }
   }, [content, index]);
 
   return (
-    <div className="prose prose-sm prose-invert prose-p:mb-2 last:prose-p:mb-0 max-w-none font-serif animate-in fade-in">
+    <div className="font-serif text-sm animate-in fade-in">
       <ReactMarkdown
         components={{
           ul: ({ ...props }) => (
-            <ul className="list-disc pl-4 space-y-1" {...props} />
+            <ul className="list-disc pl-5 my-2 space-y-1" {...props} />
           ),
           ol: ({ ...props }) => (
-            <ol className="list-decimal pl-4 space-y-1" {...props} />
+            <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />
           ),
+          li: ({ ...props }) => <li className="leading-relaxed" {...props} />,
+          p: ({ ...props }) => <p className="mb-2 last:mb-0" {...props} />,
         }}
       >
         {displayedContent}
