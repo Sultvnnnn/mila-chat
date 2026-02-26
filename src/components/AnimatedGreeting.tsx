@@ -30,9 +30,9 @@ export function AnimatedGreeting() {
   }, [text, isDeleting, phraseIndex]);
 
   return (
-    <h1 className="text-base sm:text-lg md:text-xl font-medium flex items-center justify-center min-h-[28px] sm:min-h-[32px] md:min-h-[36px] px-3 sm:px-4 text-center leading-snug">
+    <h1 className="text-sm font-medium whitespace-nowrap px-4">
       {text}
-      <span className="animate-pulse w-[2px] h-[1em] bg-foreground ml-1 rounded-full shrink-0"></span>
+      <span className="inline-block animate-pulse w-[1.5px] h-[0.85em] bg-foreground/70 ml-[2px] rounded-full align-middle" />
     </h1>
   );
 }

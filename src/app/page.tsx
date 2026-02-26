@@ -160,7 +160,7 @@ export default function Home() {
               </div>
 
               {/* SUGGEST BUTTON START */}
-              <div className="flex flex-wrap justify-center gap-2 w-full max-w-sm mx-auto px-2">
+              <div className="flex flex-wrap justify-center gap-2 w-full max-w-[320px] sm:max-w-sm mx-auto px-2">
                 {[
                   {
                     icon: <Calendar className="h-3.5 w-3.5" />,
@@ -348,7 +348,6 @@ export default function Home() {
 }
 
 //? SUB KOMPONEN
-
 function TypewriterEffect({ content = "" }: { content?: string }) {
   const [displayedContent, setDisplayedContent] = useState("");
   const [index, setIndex] = useState(0);
