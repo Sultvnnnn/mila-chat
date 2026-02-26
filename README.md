@@ -39,7 +39,7 @@
 ---
 
 ## 📂 Project Structure
-
+```
 ├── src
 │   ├── app
 │   │   ├── api
@@ -84,7 +84,7 @@
 ├── postcss.config.mjs
 ├── tailwind.config.ts
 └── tsconfig.json
-
+```
 ---
 
 ## 🚦 Getting Started
