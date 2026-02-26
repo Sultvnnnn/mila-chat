@@ -136,6 +136,20 @@ export default function Home() {
           animation: none;
           mix-blend-mode: normal;
         }
+
+        [data-theme-transition="expand"]::view-transition-old(root) {
+          z-index: 1;
+        }
+        [data-theme-transition="expand"]::view-transition-new(root) {
+          z-index: 2;
+        }
+
+        [data-theme-transition="shrink"]::view-transition-old(root) {
+          z-index: 2;
+        }
+        [data-theme-transition="shrink"]::view-transition-new(root) {
+          z-index: 1;
+        }
       `}</style>
 
       {/* CONTAINER UTAMA START */}

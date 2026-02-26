@@ -3,6 +3,7 @@
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sun, Moon } from "lucide-react";
+import { flushSync } from "react-dom";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -11,7 +12,6 @@ export function ThemeToggle() {
     const isDark = theme === "dark";
     const nextTheme = isDark ? "light" : "dark";
 
-    // fallback jika browser ga support View Transitions API
     if (!("startViewTransition" in document)) {
       setTheme(nextTheme);
       return;
@@ -19,15 +19,20 @@ export function ThemeToggle() {
 
     const x = e.clientX;
     const y = e.clientY;
-
     const endRadius = Math.hypot(
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y),
     );
 
+    document.documentElement.dataset.themeTransition = isDark
+      ? "shrink"
+      : "expand";
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const transition = (document as any).startViewTransition(() => {
-      setTheme(nextTheme);
+      flushSync(() => {
+        setTheme(nextTheme);
+      });
     });
 
     transition.ready.then(() => {
@@ -38,14 +43,21 @@ export function ThemeToggle() {
 
       document.documentElement.animate(
         {
-          clipPath: clipPath,
+          clipPath: isDark ? [...clipPath].reverse() : clipPath,
         },
         {
           duration: 600,
           easing: "ease-in-out",
-          pseudoElement: "::view-transition-new(root)",
+          fill: "forwards",
+          pseudoElement: isDark
+            ? "::view-transition-old(root)"
+            : "::view-transition-new(root)",
         },
       );
+    });
+
+    transition.finished.then(() => {
+      delete document.documentElement.dataset.themeTransition;
     });
   };
 
