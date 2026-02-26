@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "next-themes";
 import TextareaAutosize from "react-textarea-autosize";
 import { AnimatedGreeting } from "@/components/AnimatedGreeting";
 import { ThemeToggle } from "@/components/ThemeToggle";

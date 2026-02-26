@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const contextText = documents
-      ?.map((doc: any) => `INFO: ${doc.content}`)
+      ?.map((doc: { content: string }) => `INFO: ${doc.content}`)
       .join("\n\n");
 
     const system = buildSystemPrompt(
