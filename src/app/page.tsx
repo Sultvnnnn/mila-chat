@@ -15,13 +15,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import TextareaAutosize from "react-textarea-autosize";
 import { AnimatedGreeting } from "@/components/AnimatedGreeting";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
 import { Button } from "@/components/ui/button";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
 } from "@/components/ui/input-group";
+import Loading from "./loading";
 
 type Message = {
   id: string;
@@ -36,22 +36,32 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading, hasStarted]);
 
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const isMobile = window.innerWidth < 768;
     if (!isMobile) {
       inputRef.current?.focus();
     }
   }, []);
+
+  if (!isMounted) {
+    return <Loading />;
+  }
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isLoading) return;
