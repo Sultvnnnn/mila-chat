@@ -6,7 +6,7 @@
 
 ---
 
-## 🚀 Key Features (Week 2 Completed)
+## 🚀 Key Features (Week 3 Completed)
 
 ### 🧠 Advanced RAG Engine
 - **Hybrid Search:** Combines semantic search (OpenAI Embeddings) with keyword matching using **Supabase pgvector** for high accuracy.
