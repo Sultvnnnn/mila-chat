@@ -25,6 +25,7 @@ export function ThemeToggle() {
       Math.max(y, window.innerHeight - y),
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const transition = (document as any).startViewTransition(() => {
       setTheme(nextTheme);
     });

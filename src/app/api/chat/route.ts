@@ -75,6 +75,7 @@ export async function POST(req: Request) {
       timeZone: "Asia/Jakarta",
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const contextText = documents
       ?.map((doc: any) => `INFO: ${doc.content}`)
       .join("\n\n");
@@ -94,7 +95,6 @@ export async function POST(req: Request) {
       messages: [{ role: "user", content: message }],
     });
 
-    // @ts-ignore
     const firstBlock = response.content[0];
     let replyText =
       firstBlock?.type === "text"

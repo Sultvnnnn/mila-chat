@@ -9,8 +9,6 @@ import {
   CreditCard,
   MapPin,
   Dumbbell,
-  Sun,
-  Moon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
@@ -35,7 +33,6 @@ type Message = {
 };
 
 export default function Home() {
-  const { theme, setTheme } = useTheme();
   const [hasStarted, setHasStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -91,7 +88,7 @@ export default function Home() {
         isStreaming: true,
       };
       setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
