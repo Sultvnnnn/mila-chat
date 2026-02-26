@@ -306,8 +306,12 @@ export default function Home() {
         {/* CHAT AREA END */}
 
         {/* INPUT GROUP TEXTAREA START */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 pt-6 bg-background border-t border-border/40">
-          <div className="max-w-2xl mx-auto">
+        {/* bg-background dikembalikan biar solid, tapi padding atas (pt) dipress jadi pt-2 aja biar ngepas */}
+        <div className="fixed bottom-0 left-0 right-0 bg-background px-4 pb-4 pt-2 border-t border-border/40">
+          {/* Shadow/Gradien super tipis (cuma 16px) di batas paling atas biar transisinya ga kaku */}
+          <div className="absolute h-4 w-full left-0 -top-4 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+
+          <div className="max-w-2xl mx-auto relative z-10">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -315,7 +319,7 @@ export default function Home() {
               }}
               className="w-full"
             >
-              <InputGroup className="bg-muted border border-border shadow-sm rounded-xl focus-within:ring-1 focus-within:ring-primary/50 transition-all">
+              <InputGroup className="bg-background border border-border dark:border-border/80 shadow-md dark:shadow-none dark:ring-1 dark:ring-border rounded-xl focus-within:ring-1 focus-within:ring-primary/50 transition-all">
                 <TextareaAutosize
                   ref={inputRef}
                   data-slot="input-group-control"
@@ -323,7 +327,6 @@ export default function Home() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={isLoading}
-                  autoFocus
                   minRows={1}
                   maxRows={8}
                   className="flex field-sizing-content min-h-12 w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm transition-[color,box-shadow] outline-none placeholder:text-muted-foreground font-serif"
@@ -345,7 +348,9 @@ export default function Home() {
                 </InputGroupAddon>
               </InputGroup>
             </form>
-            <p className="mt-3 text-center text-[10px] text-muted-foreground font-sans tracking-wide">
+
+            {/* Disclaimer kembali ke versi awal (bukan kapsul) */}
+            <p className="mt-2 text-center text-[10px] text-muted-foreground font-sans tracking-wide w-full">
               Mila adalah AI dan bisa keliru. Harap periksa kembali respons.
             </p>
           </div>
