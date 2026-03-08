@@ -87,6 +87,18 @@
 ```
 ---
 
+## 🛠️ Database Setup (Seeding)
+
+This app uses Supabase as a Vector Database. To seed the initial knowledge base, follow these steps:
+
+1. Make sure the app is running locally (`npm run dev`).
+2. Open the `src/app/api/_seed` folder and temporarily rename it to `seed` (remove the underscore).
+3. Open your browser or Postman and visit: `http://localhost:3000/api/seed` **ONCE ONLY**.
+4. Wait for the process to complete. Check your Supabase dashboard to confirm the data from `lib/yogaData.ts` has been inserted.
+5. **IMPORTANT:** Rename the folder back to `_seed` to prevent this route from being exposed in production and avoid build errors during `npm run build`.
+
+---
+
 ## 🚦 Getting Started
 
 ### 1. Clone the repository
