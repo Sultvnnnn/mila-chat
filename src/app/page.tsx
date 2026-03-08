@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import {
   ArrowUp,
   Sparkles,
@@ -22,23 +24,22 @@ import {
   InputGroupButton,
 } from "@/components/ui/input-group";
 import Loading from "./loading";
-
-type Message = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  createdAt: Date;
-  isStreaming?: boolean;
-};
+import { on } from "events";
 
 export default function Home() {
-  const [hasStarted, setHasStarted] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const [input, setInput] = useState("");
+
+  //? hook useChat
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+    }),
+  });
+
+  const isLoading = status === "submitted" || status === "streaming";
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -50,7 +51,7 @@ export default function Home() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading, hasStarted]);
+  }, [messages, isLoading]);
 
   useEffect(() => {
     const isMobile = window.innerWidth < 768;
@@ -63,60 +64,17 @@ export default function Home() {
     return <Loading />;
   }
 
-  const handleSend = async (text: string) => {
-    if (!text.trim() || isLoading) return;
-    if (!hasStarted) setHasStarted(true);
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: text,
-      createdAt: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
+  const onSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!input.trim() || isLoading) return;
+    sendMessage({ text: input });
     setInput("");
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage.content }),
-      });
-
-      const data = await response.json();
-
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content:
-          data.reply ||
-          data.error ||
-          "Maaf Ka, Mila sedang ada gangguan koneksi. 🙏",
-        createdAt: new Date(),
-        isStreaming: true,
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          role: "assistant",
-          content:
-            "Maaf Ka, koneksi Mila agak gangguan. Coba tanya lagi ya? 🙏",
-          createdAt: new Date(),
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend(input);
+      onSubmit();
     }
   };
 
@@ -157,7 +115,7 @@ export default function Home() {
         {/* HEADER START */}
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between px-6 bg-background/90 backdrop-blur-md border-b border-border">
           <div className="flex items-center gap-2">
-            {hasStarted && (
+            {messages.length > 0 && (
               <span className="text-base font-semibold tracking-[0.2em] text-foreground/80 animate-in fade-in">
                 Mila
               </span>
@@ -174,7 +132,7 @@ export default function Home() {
           id="chat-scroll-container"
           className="flex-1 overflow-y-auto px-4 w-full max-w-2xl mx-auto hide-scrollbar"
         >
-          {!hasStarted ? (
+          {messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500 pb-32">
               <div className="text-center space-y-3">
                 <div className="inline-flex p-3 rounded-full bg-secondary border border-border mb-2">
@@ -216,7 +174,7 @@ export default function Home() {
                     key={text}
                     variant="outline"
                     size="sm"
-                    onClick={() => handleSend(prompt)}
+                    onClick={() => sendMessage({ text: prompt })}
                     className="rounded-full border-border/60 bg-background/60 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-accent hover:border-border transition-all duration-200 gap-1.5 text-xs font-normal"
                   >
                     {icon}
@@ -229,7 +187,7 @@ export default function Home() {
           ) : (
             <div className="flex flex-col gap-6 py-6 pb-40">
               <AnimatePresence initial={false}>
-                {messages.map((m, index) => {
+                {messages.map((m: UIMessage, index: number) => {
                   const isLatest = index === messages.length - 1;
 
                   return (
@@ -237,7 +195,9 @@ export default function Home() {
                       key={m.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                      className={`flex gap-3 ${
+                        m.role === "user" ? "justify-end" : "justify-start"
+                      }`}
                     >
                       <div className={`flex flex-col gap-1 max-w-[85%]`}>
                         <div
@@ -247,17 +207,25 @@ export default function Home() {
                               : "text-foreground pl-0 py-0"
                           }`}
                         >
-                          {m.role === "user" ? (
-                            /* USER */
-                            <div className="whitespace-pre-wrap font-sans">
-                              {m.content}
-                            </div>
-                          ) : (
-                            /* AI */
-                            <div className="flex flex-col items-start gap-1">
-                              {m.isStreaming ? (
-                                <TypewriterEffect content={m.content} />
-                              ) : (
+                          {(() => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const msgAny = m as any;
+
+                            const textContent =
+                              msgAny.content ||
+                              (msgAny.parts
+                                ? msgAny.parts
+                                    .filter((p: any) => p.type === "text")
+                                    .map((p: any) => p.text)
+                                    .join("")
+                                : "");
+
+                            return m.role === "user" ? (
+                              <div className="whitespace-pre-wrap font-sans">
+                                {textContent}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-start gap-1">
                                 <div className="font-serif text-sm">
                                   <ReactMarkdown
                                     components={{
@@ -287,18 +255,18 @@ export default function Home() {
                                       ),
                                     }}
                                   >
-                                    {m.content}
+                                    {textContent}
                                   </ReactMarkdown>
                                 </div>
-                              )}
 
-                              {isLatest && m.role === "assistant" && (
-                                <div className="flex items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2">
-                                  <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
-                                </div>
-                              )}
-                            </div>
-                          )}
+                                {isLatest && m.role === "assistant" && (
+                                  <div className="flex items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2">
+                                    <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </motion.div>
@@ -306,7 +274,7 @@ export default function Home() {
                 })}
               </AnimatePresence>
 
-              {isLoading && (
+              {isLoading && messages[messages.length - 1]?.role === "user" && (
                 <div className="flex gap-3 animate-pulse ml-8">
                   <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce"></div>
                   <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce delay-75"></div>
@@ -324,13 +292,7 @@ export default function Home() {
           <div className="absolute h-4 w-full left-0 -top-4 bg-gradient-to-t from-background to-transparent pointer-events-none" />
 
           <div className="max-w-2xl mx-auto relative z-10">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSend(input);
-              }}
-              className="w-full"
-            >
+            <form onSubmit={onSubmit} className="w-full">
               <InputGroup className="bg-background border border-border dark:border-border/80 shadow-md dark:shadow-none dark:ring-1 dark:ring-border rounded-xl focus-within:ring-1 focus-within:ring-primary/50 transition-all">
                 <TextareaAutosize
                   ref={inputRef}
@@ -370,46 +332,5 @@ export default function Home() {
       </div>
       {/* CONTAINER UTAMA END */}
     </>
-  );
-}
-
-//? SUB KOMPONEN
-function TypewriterEffect({ content = "" }: { content?: string }) {
-  const [displayedContent, setDisplayedContent] = useState("");
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (!content) return;
-    if (index < content.length) {
-      const timeout = setTimeout(() => {
-        setDisplayedContent((prev) => prev + content.charAt(index));
-        setIndex((prev) => prev + 1);
-
-        const container = document.getElementById("chat-scroll-container");
-        if (container) {
-          container.scrollTop = container.scrollHeight;
-        }
-      }, 5);
-      return () => clearTimeout(timeout);
-    }
-  }, [content, index]);
-
-  return (
-    <div className="font-serif text-sm animate-in fade-in">
-      <ReactMarkdown
-        components={{
-          ul: ({ ...props }) => (
-            <ul className="list-disc pl-5 my-2 space-y-1" {...props} />
-          ),
-          ol: ({ ...props }) => (
-            <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />
-          ),
-          li: ({ ...props }) => <li className="leading-relaxed" {...props} />,
-          p: ({ ...props }) => <p className="mb-2 last:mb-0" {...props} />,
-        }}
-      >
-        {displayedContent}
-      </ReactMarkdown>
-    </div>
   );
 }

@@ -1,13 +1,10 @@
-import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { generateEmbedding } from "@/lib/openai";
 import buildSystemPrompt from "@/lib/prompts/systemPrompt";
-import Anthropic from "@anthropic-ai/sdk";
+import { anthropic } from "@ai-sdk/anthropic";
+import { streamText } from "ai";
 
-//? INIT
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "",
-});
+export const dynamic = "force-dynamic";
 
 //? LANGUAGE DETECTOR
 const isEnglishLanguage = (text: string): boolean => {
@@ -18,15 +15,24 @@ const isEnglishLanguage = (text: string): boolean => {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { message } = body;
+    const { messages } = await req.json();
+
+    const coreMessages = messages.map((msg: any) => ({
+      role: msg.role,
+      content:
+        msg.content ||
+        (msg.parts ? msg.parts.map((p: any) => p.text).join("") : ""),
+    }));
+
+    const lastMessage = coreMessages[coreMessages.length - 1];
+
+    const query = lastMessage.content;
 
     // detect language
-    const isEnglish = isEnglishLanguage(message);
+    const isEnglish = isEnglishLanguage(query);
     const langCode = isEnglish ? "EN" : "ID";
 
     // generate embedding
-    const query = `${message}`;
     const embedding = await generateEmbedding(query);
 
     // hybrid search
@@ -80,38 +86,25 @@ export async function POST(req: Request) {
       ?.map((doc: { content: string }) => `INFO: ${doc.content}`)
       .join("\n\n");
 
-    const system = buildSystemPrompt(
+    const systemPrompt = buildSystemPrompt(
       langCode,
       hariIni,
       timeString,
       contextText || "",
     );
 
-    // claude's response
-    const response = await anthropic.messages.create({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 500,
-      system,
-      messages: [{ role: "user", content: message }],
+    const result = streamText({
+      model: anthropic("claude-3-haiku-20240307"),
+      system: systemPrompt,
+      messages: coreMessages,
     });
 
-    const firstBlock = response.content[0];
-    let replyText =
-      firstBlock?.type === "text"
-        ? firstBlock.text
-        : "Maaf, Mila sedang mediasi sebentar. Coba tanya lagi ya Ka? 🙏";
-
-    replyText = replyText
-      .replace(/\[(IF|JIKA|DETECT|START|END|USER).*?\]/gi, "")
-      .trim()
-      .replace(/^\n+/, "");
-
-    return NextResponse.json({ reply: replyText });
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error(`Chat error: ${error}`);
-    return NextResponse.json(
-      { error: "Gagal memproses chat" },
-      { status: 500 },
-    );
+    return new Response(JSON.stringify({ error: "Gagal memproses chat" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
