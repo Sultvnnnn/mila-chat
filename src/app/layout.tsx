@@ -16,7 +16,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "MILA - MULA Yoga Assistant",
+  title: "MILA - Yoga Assistant",
   description: "Asisten AI pintar dari Mula Yoga Studio",
 };
 
