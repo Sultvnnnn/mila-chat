@@ -24,7 +24,6 @@ import {
   InputGroupButton,
 } from "@/components/ui/input-group";
 import Loading from "./loading";
-import { on } from "events";
 
 export default function Home() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -111,7 +110,7 @@ export default function Home() {
       `}</style>
 
       {/* CONTAINER UTAMA START */}
-      <div className="flex h-[100dvh] flex-col bg-background text-foreground font-serif selection:bg-primary/30">
+      <div className="flex h-[100dvh] flex-col bg-background text-foreground font-sans selection:bg-primary/30">
         {/* HEADER START */}
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between px-6 bg-background/90 backdrop-blur-md border-b border-border">
           <div className="flex items-center gap-2">
@@ -226,7 +225,8 @@ export default function Home() {
                               </div>
                             ) : (
                               <div className="flex flex-col items-start gap-1">
-                                <div className="font-serif text-sm">
+                                {/* UBAH font-serif JADI font-sans DI SINI */}
+                                <div className="font-sans text-sm">
                                   <ReactMarkdown
                                     components={{
                                       ul: ({ ...props }) => (
@@ -303,7 +303,7 @@ export default function Home() {
                   disabled={isLoading}
                   minRows={1}
                   maxRows={8}
-                  className="flex field-sizing-content min-h-12 w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm transition-[color,box-shadow] outline-none placeholder:text-muted-foreground font-serif"
+                  className="flex field-sizing-content min-h-12 w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm transition-[color,box-shadow] outline-none placeholder:text-muted-foreground font-sans"
                   placeholder="Halo Mila ..."
                 />
                 <InputGroupAddon align="block-end" className="p-2">

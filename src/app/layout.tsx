@@ -1,14 +1,23 @@
-import "./globals.css";
 import React from "react";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+});
+
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+});
 
 export const metadata: Metadata = {
-  title: "Halo Mila",
-  description: "Customer Care & Teman Yoga dari Mula Yoga Studio",
+  title: "MILA - MULA Yoga Assistant",
+  description: "Asisten AI pintar dari Mula Yoga Studio",
 };
 
 export default function RootLayout({
@@ -18,7 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" suppressHydrationWarning className="bg-background">
-      <body className={inter.className}>
+      <body
+        className={`${jakarta.variable} ${playfair.variable} font-sans antialiased`}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
