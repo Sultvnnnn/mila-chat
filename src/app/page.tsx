@@ -110,7 +110,7 @@ export default function Home() {
       `}</style>
 
       {/* CONTAINER UTAMA START */}
-      <div className="flex h-[100dvh] flex-col bg-background text-foreground font-sans selection:bg-primary/30">
+      <div className="flex h-[100dvh] flex-col bg-background text-foreground font-sans selection:bg-mula/50">
         {/* HEADER START */}
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between px-6 bg-background/90 backdrop-blur-md border-b border-border">
           <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ export default function Home() {
             <div className="flex h-full flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500 pb-32">
               <div className="text-center space-y-3">
                 <div className="inline-flex p-3 rounded-full bg-secondary border border-border mb-2">
-                  <Sparkles className="h-5 w-5 text-indigo-400" />
+                  <Sparkles className="h-5 w-5 text-mula-dark" />
                 </div>
                 <AnimatedGreeting />
               </div>
@@ -174,7 +174,7 @@ export default function Home() {
                     variant="outline"
                     size="sm"
                     onClick={() => sendMessage({ text: prompt })}
-                    className="rounded-full border-border/60 bg-background/60 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-accent hover:border-border transition-all duration-200 gap-1.5 text-xs font-normal"
+                    className="rounded-full border-border/60 bg-background/60 backdrop-blur-sm text-muted-foreground hover:text-zinc-900 dark:hover:text-zinc-900 hover:bg-mula-light hover:border-mula transition-all duration-200 gap-1.5 text-xs font-normal"
                   >
                     {icon}
                     {text}
@@ -202,7 +202,7 @@ export default function Home() {
                         <div
                           className={`text-sm leading-relaxed ${
                             m.role === "user"
-                              ? "bg-primary text-primary-foreground px-4 py-2 rounded-2xl rounded-tr-sm"
+                              ? "bg-mula text-zinc-900 px-4 py-2 rounded-2xl rounded-tr-sm shadow-sm"
                               : "text-foreground pl-0 py-0"
                           }`}
                         >
@@ -225,7 +225,6 @@ export default function Home() {
                               </div>
                             ) : (
                               <div className="flex flex-col items-start gap-1">
-                                {/* UBAH font-serif JADI font-sans DI SINI */}
                                 <div className="font-sans text-sm">
                                   <ReactMarkdown
                                     components={{
@@ -261,7 +260,7 @@ export default function Home() {
 
                                 {isLatest && m.role === "assistant" && (
                                   <div className="flex items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2">
-                                    <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
+                                    <Sparkles className="h-4 w-4 text-mula-dark animate-pulse" />
                                   </div>
                                 )}
                               </div>
@@ -276,9 +275,9 @@ export default function Home() {
 
               {isLoading && messages[messages.length - 1]?.role === "user" && (
                 <div className="flex gap-3 animate-pulse ml-8">
-                  <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce"></div>
-                  <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce delay-75"></div>
-                  <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce delay-150"></div>
+                  <div className="h-1.5 w-1.5 bg-mula-dark rounded-full animate-bounce"></div>
+                  <div className="h-1.5 w-1.5 bg-mula-dark rounded-full animate-bounce delay-75"></div>
+                  <div className="h-1.5 w-1.5 bg-mula-dark rounded-full animate-bounce delay-150"></div>
                 </div>
               )}
               <div ref={messagesEndRef} />
@@ -293,7 +292,7 @@ export default function Home() {
 
           <div className="max-w-2xl mx-auto relative z-10">
             <form onSubmit={onSubmit} className="w-full">
-              <InputGroup className="bg-background border border-border dark:border-border/80 shadow-md dark:shadow-none dark:ring-1 dark:ring-border rounded-xl focus-within:ring-1 focus-within:ring-primary/50 transition-all">
+              <InputGroup className="bg-background border border-border dark:border-border/80 shadow-md dark:shadow-none dark:ring-1 dark:ring-border rounded-xl focus-within:ring-1 focus-within:ring-mula-dark/50 transition-all">
                 <TextareaAutosize
                   ref={inputRef}
                   data-slot="input-group-control"
@@ -310,9 +309,8 @@ export default function Home() {
                   <InputGroupButton
                     type="submit"
                     disabled={!input.trim() || isLoading}
-                    className="ml-auto rounded-full h-8 w-8 transition-all"
+                    className="ml-auto rounded-full h-8 w-8 transition-all bg-mula text-zinc-900 hover:bg-mula-dark"
                     size="icon-sm"
-                    variant="default"
                   >
                     <ArrowUp
                       size={16}
