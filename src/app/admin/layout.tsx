@@ -94,7 +94,7 @@ export default function AdminLayout({
 
         {/* SIDEBAR */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 transition-all duration-300 ease-in-out lg:static lg:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-40 flex flex-col bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 transition-all duration-300 ease-in-out lg:static lg:translate-x-0 ${
             isCollapsed ? "lg:w-20" : "lg:w-72"
           } ${isMobileOpen ? "translate-x-0 w-72" : "-translate-x-full w-72"}`}
         >

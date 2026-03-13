@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,13 +15,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function AddKnowledgePage() {
+export default function EditKnowledgePage() {
   const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
+
+  const id = params.id as string;
+  const lang = searchParams.get("lang") || "id";
+  const targetTable = lang === "id" ? "knowledge_entries" : "documents_en";
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("faq");
-  const [language, setLanguage] = useState<"id" | "en">("id");
+  const [status, setStatus] = useState("active");
+  const [isFetching, setIsFetching] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -30,19 +37,38 @@ export default function AddKnowledgePage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 
+  useEffect(() => {
+    const fetchDoc = async () => {
+      const { data, error } = await supabase
+        .from(targetTable)
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) {
+        setErrorMsg(`Failed to fetch document: ${error.message}`);
+      } else if (data) {
+        setTitle(data.title || "");
+        setContent(data.content || "");
+        setCategory(data.category || "faq");
+        if (data.status) setStatus(data.status);
+      }
+      setIsFetching(false);
+    };
+
+    if (id) fetchDoc();
+  }, [id, targetTable, supabase]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
     if (!title.trim() || !content.trim()) {
-      setErrorMsg("Title and content are required.");
+      setErrorMsg("Title and content cannot be empty.");
       return;
     }
 
     setIsSubmitting(true);
-
-    const targetTable =
-      language === "id" ? "knowledge_entries" : "documents_en";
 
     const payload: any = {
       title: title.trim(),
@@ -50,28 +76,38 @@ export default function AddKnowledgePage() {
       category: category,
     };
 
-    if (language === "id") {
-      payload.status = "active";
+    if (lang === "id") {
+      payload.status = status;
     }
 
-    const { error } = await supabase.from(targetTable).insert([payload]);
+    const { error } = await supabase
+      .from(targetTable)
+      .update(payload)
+      .eq("id", id);
 
     setIsSubmitting(false);
 
     if (error) {
-      console.error(`Error inserting into ${targetTable}: ${error}`);
-      setErrorMsg(`Failed to save knowledge entry: ${error.message}`);
+      setErrorMsg(`Failed to update document: ${error.message}`);
     } else {
       router.push("/admin/knowledge");
       router.refresh();
     }
   };
 
+  if (isFetching) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-zinc-500">
+        <Loader2 className="h-8 w-8 animate-spin text-mula-dark mb-4" />
+        <p>Menyiapkan data dokumen...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 font-sans max-w-4xl mx-auto pb-10">
       {/* HEADER PAGE */}
       <div className="flex flex-col gap-2">
-        {/* Breadcrumb */}
         <nav className="flex items-center text-sm text-zinc-500 dark:text-zinc-400 font-medium">
           <Link
             href="/admin"
@@ -88,17 +124,16 @@ export default function AddKnowledgePage() {
           </Link>
           <span className="mx-2 text-zinc-300 dark:text-zinc-700">/</span>
           <span className="text-zinc-900 dark:text-zinc-100 bg-mula-light dark:bg-mula-dark/20 px-2 py-0.5 rounded-md text-mula-dark dark:text-mula">
-            Baru
+            Edit Dokumen
           </span>
         </nav>
 
-        {/* Header Judul */}
         <div className="mt-2">
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-serif">
-            Tambah Dokumen Baru
+            Edit Dokumen
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Masukkan materi untuk dipelajari oleh MILA AI.
+            Perbarui materi ({lang === "id" ? "Bahasa Indonesia" : "English"}).
           </p>
         </div>
       </div>
@@ -106,50 +141,9 @@ export default function AddKnowledgePage() {
       {/* FORM CONTAINER */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-8">
-          {/* PILIH BAHASA */}
-          <div className="space-y-3">
-            <label className="text-sm font-bold tracking-wider uppercase text-zinc-500">
-              Bahasa Dokumen (Tabel Tujuan)
-            </label>
-            <div className="relative flex p-1 bg-zinc-100 dark:bg-zinc-950/50 rounded-lg w-full sm:w-[320px]">
-              <div
-                className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] rounded-md bg-mula dark:bg-mula/90 shadow-md transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                  language === "id" ? "translate-x-0" : "translate-x-full"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setLanguage("id")}
-                className={`relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ${
-                  language === "id"
-                    ? "text-zinc-900 dark:text-zinc-900"
-                    : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                }`}
-              >
-                Indonesian
-              </button>
-              <button
-                type="button"
-                onClick={() => setLanguage("en")}
-                className={`relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ${
-                  language === "en"
-                    ? "text-zinc-900 dark:text-zinc-900"
-                    : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                }`}
-              >
-                English
-              </button>
-            </div>
-            <p className="text-xs text-zinc-500">
-              {language === "id"
-                ? "Data akan disimpan ke tabel knowledge_entries"
-                : "Data akan disimpan ke tabel documents_en"}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* TITLE */}
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <label
                 htmlFor="title"
                 className="text-sm font-bold tracking-wider uppercase text-zinc-500"
@@ -158,7 +152,6 @@ export default function AddKnowledgePage() {
               </label>
               <Input
                 id="title"
-                placeholder="Contoh: Rekomendasi Kelas untuk Pemula"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="bg-zinc-50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus-visible:ring-mula-dark h-11"
@@ -167,15 +160,12 @@ export default function AddKnowledgePage() {
 
             {/* CATEGORY */}
             <div className="space-y-2">
-              <label
-                htmlFor="category"
-                className="text-sm font-bold tracking-wider uppercase text-zinc-500"
-              >
+              <label className="text-sm font-bold tracking-wider uppercase text-zinc-500">
                 Kategori
               </label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger className="h-11 w-full bg-zinc-50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus:ring-mula-dark text-zinc-900 dark:text-zinc-100">
-                  <SelectValue placeholder="Pilih kategori dokumen..." />
+                  <SelectValue placeholder="Pilih kategori..." />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
                   <SelectItem value="faq">FAQ / General</SelectItem>
@@ -186,6 +176,24 @@ export default function AddKnowledgePage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* STATUS */}
+            {lang === "id" && (
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-bold tracking-wider uppercase text-zinc-500">
+                  Status
+                </label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger className="h-11 w-full sm:w-1/2 bg-zinc-50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus:ring-mula-dark text-zinc-900 dark:text-zinc-100">
+                    <SelectValue placeholder="Pilih status..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {/* CONTENT TEXTAREA */}
@@ -198,19 +206,13 @@ export default function AddKnowledgePage() {
             </label>
             <textarea
               id="content"
-              placeholder="Masukkan teks materi selengkapnya di sini..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={12}
               className="flex w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 px-3 py-3 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mula-dark focus-visible:ring-offset-2 text-zinc-900 dark:text-zinc-100 resize-y"
             />
-            <p className="text-xs text-zinc-500 text-right">
-              Tips: Tulis sedetail mungkin agar MILA dapat menjawab dengan
-              akurat.
-            </p>
           </div>
 
-          {/* PESAN ERROR */}
           {errorMsg && (
             <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-lg text-sm text-red-600 dark:text-red-400">
               {errorMsg}
@@ -241,7 +243,7 @@ export default function AddKnowledgePage() {
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  Simpan Dokumen
+                  Update Dokumen
                 </>
               )}
             </Button>

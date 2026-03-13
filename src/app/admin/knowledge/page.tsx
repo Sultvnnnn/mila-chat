@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
@@ -18,8 +19,21 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function KnowledgeBasePage() {
+  const router = useRouter();
+
   const [knowledgeData, setKnowledgeData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -28,6 +42,8 @@ export default function KnowledgeBasePage() {
   >("knowledge_entries");
   const [selectedDoc, setSelectedDoc] = useState<any | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
 
   // init Supabase
   const supabase = createBrowserClient(
@@ -81,6 +97,28 @@ export default function KnowledgeBasePage() {
       item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.category?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  // delete logic
+  const handleDelete = async () => {
+    setIsDeleting(true);
+
+    const { error } = await supabase
+      .from(activeTable)
+      .delete()
+      .eq("id", selectedDoc.id);
+
+    setIsDeleting(false);
+
+    if (error) {
+      alert(`Error deleting document: ${error.message}`);
+    } else {
+      setKnowledgeData((prev) =>
+        prev.filter((item) => item.id !== selectedDoc.id),
+      );
+      setShowDeleteAlert(false);
+      setSelectedDoc(null);
+    }
+  };
 
   // scroll to top button logic
   useEffect(() => {
@@ -298,7 +336,7 @@ export default function KnowledgeBasePage() {
 
       {/* MODAL DETAIL DATA */}
       {selectedDoc && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
           <div
             className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
             onClick={() => setSelectedDoc(null)}
@@ -392,22 +430,24 @@ export default function KnowledgeBasePage() {
               </div>
             </div>
 
+            {/* FOOTER MODAL */}
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
               <Button
                 variant="outline"
+                onClick={() => setShowDeleteAlert(true)}
                 className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 dark:border-red-900/50 dark:hover:bg-red-950/30 transition-colors"
-                onClick={() => {
-                  alert("Fitur Delete segera hadir!");
-                }}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Hapus
               </Button>
+
               <Button
                 className="bg-zinc-900 hover:bg-mula-dark hover:text-zinc-900 text-white dark:bg-mula dark:text-zinc-900 dark:hover:bg-zinc-100 transition-colors shadow-sm"
                 onClick={() => {
-                  alert(
-                    `Ngarah ke halaman edit: /admin/knowledge/${selectedDoc.id}`,
+                  const lang =
+                    activeTable === "knowledge_entries" ? "id" : "en";
+                  router.push(
+                    `/admin/knowledge/${selectedDoc.id}/edit?lang=${lang}`,
                   );
                 }}
               >
@@ -418,6 +458,39 @@ export default function KnowledgeBasePage() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-[99999]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-zinc-900 dark:text-zinc-100">
+              Yakin mau hapus dokumen ini?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500 dark:text-zinc-400">
+              Data "{selectedDoc?.title}" yang dihapus nggak bisa dikembalikan
+              lagi. MILA nggak akan punya akses ke informasi ini.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="bg-zinc-100 hover:bg-zinc-200 text-zinc-900 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-100 border-none transition-colors"
+            >
+              Batal
+            </AlertDialogCancel>
+            <Button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white shadow-sm transition-colors"
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              {isDeleting ? "Menghapus..." : "Ya, Hapus Permanen"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* SCROLL TO TOP BUTTON */}
       <div
         className={`fixed bottom-6 right-6 z-[50] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
