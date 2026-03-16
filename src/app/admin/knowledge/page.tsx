@@ -59,6 +59,7 @@ export default function KnowledgeBasePage() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // init Supabase
   const supabase = useMemo(
@@ -396,19 +397,26 @@ export default function KnowledgeBasePage() {
         </div>
       </div>
 
-      {/* 4. DRAWER DETAIL DATA */}
+      {/* DRAWER DETAIL DATA */}
       <Drawer
-        open={!!selectedDoc}
-        onOpenChange={(open) => !open && setSelectedDoc(null)}
+        open={isDrawerOpen}
+        onOpenChange={(open) => {
+          setIsDrawerOpen(open);
+          if (!open) {
+            setTimeout(() => {
+              setSelectedDoc(null);
+            }, 300);
+          }
+        }}
       >
         <DrawerContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[96vh]">
-          {selectedDoc && (
+          {selectedDoc ? (
             <div className="w-full max-w-3xl mx-auto flex flex-col overflow-hidden">
               {/* Header Drawer */}
               <DrawerHeader className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-row items-center gap-3 shrink-0 text-left">
                 <div className="p-2 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-lg shrink-0 hidden sm:block">
                   {(() => {
-                    const Icon = getCategoryIcon(selectedDoc.category);
+                    const Icon = getCategoryIcon(selectedDoc.category || "");
                     return <Icon className="h-5 w-5" />;
                   })()}
                 </div>
@@ -434,7 +442,7 @@ export default function KnowledgeBasePage() {
                 </DrawerClose>
               </DrawerHeader>
 
-              {/* Body Drawer (Bisa di-scroll kalau konten panjang) */}
+              {/* Body Drawer */}
               <div className="p-6 overflow-y-auto flex-1 space-y-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold tracking-wider uppercase text-zinc-500">
@@ -520,6 +528,8 @@ export default function KnowledgeBasePage() {
                 </Button>
               </div>
             </div>
+          ) : (
+            <div className="w-full max-w-3xl mx-auto h-[50vh]" />
           )}
         </DrawerContent>
       </Drawer>

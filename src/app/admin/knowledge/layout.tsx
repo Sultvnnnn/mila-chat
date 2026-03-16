@@ -2,7 +2,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Knowledge Base | MULA Studio",
-  description: "Kelola informasi knowledge base untuk MILA AI.",
+  description: "Kelola informasi knowledge base untuk MILA.",
 };
 
 export default function KnowledgeLayout({

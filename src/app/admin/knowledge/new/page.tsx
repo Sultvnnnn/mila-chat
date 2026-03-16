@@ -8,12 +8,11 @@ import {
   AlertCircle,
   Loader2,
   FileJson,
-  ChevronRight,
-  Home,
   Database,
   FileSpreadsheet,
   Plus,
   Save,
+  Download,
 } from "lucide-react";
 import {
   Select,
@@ -139,6 +138,49 @@ export default function NewKnowledgePage() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  // HANDLER TEMPLATE DOWNLOAD
+  const handleDownloadTemplate = (type: "csv" | "json") => {
+    let content = "";
+    let filename = "";
+    let mimeType = "";
+
+    if (type === "csv") {
+      content =
+        'title,category,content,status\n"Contoh Judul","Kategori yang valid: Studio, Class, Price, Faq, Policy, General.","Tulis isi konten di sini.","Khusus data Indonesia isi dengan active atau inactive untuk data Inggris."';
+      filename = "template_import.csv";
+      mimeType = "text/csv;charset=utf-8;";
+    } else {
+      content = JSON.stringify(
+        [
+          {
+            title: "Contoh Judul",
+            category:
+              "Kategori yang valid: Studio, Class, Price, Faq, Policy, General.",
+            content: "Tulis isi konten di sini.",
+            status:
+              "Khusus data Indonesia isi dengan active atau inactive untuk data Inggris.",
+          },
+        ],
+        null,
+        2,
+      );
+      filename = "template_import.json";
+      mimeType = "application/json";
+    }
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -360,73 +402,104 @@ export default function NewKnowledgePage() {
 
         {/* BULK IMPORT */}
         {activeTab === "import" && (
-          <div className="animate-in slide-in-from-right-2 duration-300">
-            {/* Upload Area */}
-            <div className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-10 flex flex-col items-center justify-center text-center bg-zinc-50 dark:bg-zinc-950/50 hover:bg-zinc-100 dark:hover:bg-zinc-900/80 transition-colors relative cursor-pointer group">
-              <input
-                type="file"
-                accept=".json,.csv"
-                onChange={handleFileChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-              />
-              <UploadCloud className="h-10 w-10 text-zinc-400 group-hover:text-mula-dark dark:group-hover:text-mula transition-colors mb-4" />
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                {file ? file.name : "Drag & drop or click to upload"}
-              </h3>
-              <p className="text-sm text-zinc-500 mt-2 flex items-center justify-center gap-2">
-                <FileJson className="h-4 w-4" /> JSON
-                <FileSpreadsheet className="h-4 w-4 ml-1" /> CSV
-              </p>
+          <>
+            {/* Tombol Download Template */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 mb-6 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
+              <span className="text-sm text-zinc-600 dark:text-zinc-400 font-medium">
+                Download format template:
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownloadTemplate("csv")}
+                  className="h-8 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
+                >
+                  <Download className="h-3 w-3 mr-2" />
+                  CSV
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownloadTemplate("json")}
+                  className="h-8 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
+                >
+                  <Download className="h-3 w-3 mr-2" />
+                  JSON
+                </Button>
+              </div>
             </div>
 
-            {/* Status Message */}
-            {bulkResult && (
-              <div
-                className={`mt-6 p-4 rounded-xl flex items-center gap-3 ${
-                  bulkResult.success
-                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                }`}
-              >
-                {bulkResult.success ? (
-                  <CheckCircle2 className="h-5 w-5 shrink-0" />
-                ) : (
-                  <AlertCircle className="h-5 w-5 shrink-0" />
-                )}
-                <p className="font-medium text-sm">{bulkResult.msg}</p>
+            <div className="animate-in slide-in-from-right-2 duration-300">
+              {/* Upload Area */}
+              <div className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-10 flex flex-col items-center justify-center text-center bg-zinc-50 dark:bg-zinc-950/50 hover:bg-zinc-100 dark:hover:bg-zinc-900/80 transition-colors relative cursor-pointer group">
+                <input
+                  type="file"
+                  accept=".json,.csv"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
+                <UploadCloud className="h-10 w-10 text-zinc-400 group-hover:text-mula-dark dark:group-hover:text-mula transition-colors mb-4" />
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                  {file ? file.name : "Drag & drop or click to upload"}
+                </h3>
+                <p className="text-sm text-zinc-500 mt-2 flex items-center justify-center gap-2">
+                  <FileJson className="h-4 w-4" /> JSON
+                  <FileSpreadsheet className="h-4 w-4 ml-1" /> CSV
+                </p>
               </div>
-            )}
 
-            {/* Data Preview & Action */}
-            {preview.length > 0 && (
-              <div className="mt-8">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                  <h4 className="font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                    <Database className="h-5 w-5 text-mula-dark dark:text-mula" />
-                    Preview ({preview.length} entries)
-                  </h4>
-                  <Button
-                    onClick={handleImport}
-                    disabled={isUploading}
-                    className="w-full sm:w-auto bg-zinc-900 hover:bg-mula-dark text-white dark:bg-mula dark:text-zinc-900 dark:hover:bg-zinc-100 font-semibold transition-colors"
-                  >
-                    {isUploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : null}
-                    {isUploading ? "Importing..." : "Start Import"}
-                  </Button>
+              {/* Status Message */}
+              {bulkResult && (
+                <div
+                  className={`mt-6 p-4 rounded-xl flex items-center gap-3 ${
+                    bulkResult.success
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                  }`}
+                >
+                  {bulkResult.success ? (
+                    <CheckCircle2 className="h-5 w-5 shrink-0" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5 shrink-0" />
+                  )}
+                  <p className="font-medium text-sm">{bulkResult.msg}</p>
                 </div>
+              )}
 
-                <div className="bg-zinc-50 dark:bg-zinc-950 rounded-xl p-4 max-h-72 overflow-y-auto border border-zinc-200 dark:border-zinc-800 shadow-inner">
-                  <pre className="text-xs text-zinc-600 dark:text-zinc-400 font-mono whitespace-pre-wrap">
-                    {JSON.stringify(preview.slice(0, 3), null, 2)}
-                    {preview.length > 3 &&
-                      `\n\n... and ${preview.length - 3} more entries.`}
-                  </pre>
+              {/* Data Preview & Action */}
+              {preview.length > 0 && (
+                <div className="mt-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <h4 className="font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      <Database className="h-5 w-5 text-mula-dark dark:text-mula" />
+                      Preview ({preview.length} entries)
+                    </h4>
+                    <Button
+                      onClick={handleImport}
+                      disabled={isUploading}
+                      className="w-full sm:w-auto bg-zinc-900 hover:bg-mula-dark text-white dark:bg-mula dark:text-zinc-900 dark:hover:bg-zinc-100 font-semibold transition-colors"
+                    >
+                      {isUploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      {isUploading ? "Importing..." : "Start Import"}
+                    </Button>
+                  </div>
+
+                  <div className="bg-zinc-50 dark:bg-zinc-950 rounded-xl p-4 max-h-72 overflow-y-auto border border-zinc-200 dark:border-zinc-800 shadow-inner">
+                    <pre className="text-xs text-zinc-600 dark:text-zinc-400 font-mono whitespace-pre-wrap">
+                      {JSON.stringify(preview.slice(0, 3), null, 2)}
+                      {preview.length > 3 &&
+                        `\n\n... and ${preview.length - 3} more entries.`}
+                    </pre>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

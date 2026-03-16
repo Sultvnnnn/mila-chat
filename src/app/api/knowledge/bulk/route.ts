@@ -38,10 +38,12 @@ export async function POST(req: Request) {
         content: entry.content,
         category: entry.category || "General",
         embedding: embeddingResponse.data[index].embedding,
+        created_at: new Date().toISOString(),
       };
 
       if (targetTable === "knowledge_entries") {
-        row.status = "active";
+        row.status =
+          entry.status?.toLowerCase() === "inactive" ? "inactive" : "active";
       }
 
       return row;
