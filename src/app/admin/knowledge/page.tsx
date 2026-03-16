@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
 import {
@@ -14,43 +14,59 @@ import {
   Trash2,
   Loader2,
   Database,
-  X,
   ArrowUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+interface KnowledgeDoc {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+  status: string;
+  created_at: string;
+}
 
 export default function KnowledgeBasePage() {
   const router = useRouter();
 
-  const [knowledgeData, setKnowledgeData] = useState<any[]>([]);
+  const [knowledgeData, setKnowledgeData] = useState<KnowledgeDoc[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTable, setActiveTable] = useState<
     "knowledge_entries" | "documents_en"
   >("knowledge_entries");
-  const [selectedDoc, setSelectedDoc] = useState<any | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<KnowledgeDoc | null>(null);
+
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
 
   // init Supabase
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  const supabase = useMemo(
+    () =>
+      createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      ),
+    [],
   );
-
   // fetch knowledge base data
   useEffect(() => {
     const fetchData = async () => {
@@ -61,16 +77,16 @@ export default function KnowledgeBasePage() {
 
       if (activeTable === "knowledge_entries") {
         query = query.order("created_at", { ascending: false });
+      } else {
+        query = query.order("id", { ascending: false });
       }
 
       const { data, error } = await query;
 
       if (error) {
-        console.error(
-          `Error fetching knowledge base data from ${activeTable}: ${error.message}`,
-        );
+        console.error(`Error fetching knowledge base data: ${error.message}`);
       } else {
-        setKnowledgeData(data || []);
+        setKnowledgeData((data as KnowledgeDoc[]) || []);
       }
       setIsLoading(false);
     };
@@ -92,14 +108,22 @@ export default function KnowledgeBasePage() {
   };
 
   // search filter logic
-  const filteredData = knowledgeData.filter(
-    (item) =>
-      item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredData = knowledgeData.filter((item) => {
+    const title = (item.title || "").toLowerCase();
+    const category = (item.category || "").toLowerCase();
+    const content = (item.content || "").toLowerCase();
+    const query = searchQuery.toLowerCase();
+
+    return (
+      title.includes(query) ||
+      category.includes(query) ||
+      content.includes(query)
+    );
+  });
 
   // delete logic
   const handleDelete = async () => {
+    if (!selectedDoc) return;
     setIsDeleting(true);
 
     const { error } = await supabase
@@ -125,7 +149,7 @@ export default function KnowledgeBasePage() {
     const scrollContainer = document.querySelector(".overflow-auto") || window;
 
     const handleScroll = (e: any) => {
-      const scrollTop = e.target.scrollTop || window.scrollY;
+      const scrollTop = e.target?.scrollTop || window.scrollY || 0;
       setShowScrollTop(scrollTop > 300);
     };
 
@@ -142,18 +166,6 @@ export default function KnowledgeBasePage() {
     }
   };
 
-  // disable body scroll when modal is open
-  useEffect(() => {
-    if (selectedDoc) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [selectedDoc]);
-
   return (
     <>
       <div className="space-y-6 animate-in fade-in duration-500 font-sans pb-10">
@@ -168,12 +180,14 @@ export default function KnowledgeBasePage() {
             </p>
           </div>
 
-          <Link href="/admin/knowledge/new" className="w-full sm:w-auto">
-            <Button className="w-full sm:w-auto bg-mula hover:bg-zinc-900 text-zinc-900 hover:text-white dark:bg-mula-dark dark:hover:bg-zinc-100 dark:hover:text-zinc-900 font-semibold transition-all duration-300 shadow-sm hover:shadow-md">
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Data
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
+            <Link href="/admin/knowledge/new" className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto bg-zinc-900 hover:bg-mula-dark text-white dark:bg-mula dark:text-zinc-900 font-semibold transition-colors">
+                <Plus className="h-4 w-4 mr-2" />
+                Tambah Data
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* ACTION BAR */}
@@ -181,7 +195,7 @@ export default function KnowledgeBasePage() {
           {/* TABS BAHASA */}
           <div className="relative flex p-1 bg-zinc-100 dark:bg-zinc-950/50 rounded-lg w-full lg:w-[320px] shrink-0">
             <div
-              className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] rounded-md bg-mula dark:bg-mula/90 shadow-md transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] rounded-md bg-mula dark:bg-mula/90 shadow-md transition-transform duration-500 ease-out ${
                 activeTable === "knowledge_entries"
                   ? "translate-x-0"
                   : "translate-x-full"
@@ -191,7 +205,7 @@ export default function KnowledgeBasePage() {
               onClick={() => setActiveTable("knowledge_entries")}
               className={`relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ${
                 activeTable === "knowledge_entries"
-                  ? "text-zinc-900 dark:text-zinc-900"
+                  ? "text-zinc-900"
                   : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
               }`}
             >
@@ -201,7 +215,7 @@ export default function KnowledgeBasePage() {
               onClick={() => setActiveTable("documents_en")}
               className={`relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ${
                 activeTable === "documents_en"
-                  ? "text-zinc-900 dark:text-zinc-900"
+                  ? "text-zinc-900"
                   : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
               }`}
             >
@@ -334,130 +348,127 @@ export default function KnowledgeBasePage() {
         </div>
       </div>
 
-      {/* MODAL DETAIL DATA */}
-      {selectedDoc && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
-          <div
-            className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
-            onClick={() => setSelectedDoc(null)}
-          />
-
-          <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
-              <div className="flex items-center gap-3">
+      {/* 4. MODAL DETAIL DATA */}
+      <Dialog
+        open={!!selectedDoc}
+        onOpenChange={(open) => !open && setSelectedDoc(null)}
+      >
+        <DialogContent className="sm:max-w-2xl bg-white dark:bg-zinc-950 p-0 overflow-hidden border-zinc-200 dark:border-zinc-800 gap-0">
+          {selectedDoc && (
+            <>
+              {/* Header Modal */}
+              <DialogHeader className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-row items-center gap-3 space-y-0">
                 <div className="p-2 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-lg shrink-0">
                   {(() => {
                     const Icon = getCategoryIcon(selectedDoc.category);
                     return <Icon className="h-5 w-5" />;
                   })()}
                 </div>
-                <div>
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1">
+                <div className="text-left flex-1 pr-4">
+                  <DialogTitle className="font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1">
                     Detail Dokumen
-                  </h3>
-                  <p className="text-xs text-zinc-500 capitalize">
+                  </DialogTitle>
+                  <p className="text-xs text-zinc-500 capitalize mt-1">
                     {activeTable === "knowledge_entries"
                       ? "Bahasa Indonesia"
                       : "English"}{" "}
                     • {selectedDoc.category || "Uncategorized"}
                   </p>
                 </div>
-              </div>
-              <button
-                onClick={() => setSelectedDoc(null)}
-                className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-full transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+              </DialogHeader>
 
-            <div className="p-6 overflow-y-auto flex-1 space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold tracking-wider uppercase text-zinc-500">
-                  Title
-                </label>
-                <h2 className="text-xl sm:text-2xl font-serif font-bold text-zinc-900 dark:text-zinc-100">
-                  {selectedDoc.title}
-                </h2>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="space-y-1">
+              {/* Body Modal */}
+              <div className="p-6 overflow-y-auto max-h-[60vh] space-y-6">
+                <div className="space-y-2">
                   <label className="text-xs font-bold tracking-wider uppercase text-zinc-500">
-                    Status
+                    Title
                   </label>
-                  <div>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-                        selectedDoc.status === "active" ||
-                        selectedDoc.status === "Aktif"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300"
-                      }`}
-                    >
-                      {selectedDoc.status || "Draft"}
-                    </span>
-                  </div>
+                  <h2 className="text-xl sm:text-2xl font-serif font-bold text-zinc-900 dark:text-zinc-100">
+                    {selectedDoc.title}
+                  </h2>
                 </div>
-                {selectedDoc.created_at && (
+
+                <div className="flex gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold tracking-wider uppercase text-zinc-500">
-                      Dibuat Pada
+                      Status
                     </label>
-                    <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                      {new Date(selectedDoc.created_at).toLocaleDateString(
-                        "id-ID",
-                        {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        },
-                      )}
+                    <div>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
+                          selectedDoc.status === "active" ||
+                          selectedDoc.status === "Aktif"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300"
+                        }`}
+                      >
+                        {selectedDoc.status || "Draft"}
+                      </span>
+                    </div>
+                  </div>
+                  {selectedDoc.created_at && (
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold tracking-wider uppercase text-zinc-500">
+                        Dibuat Pada
+                      </label>
+                      <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                        {new Date(selectedDoc.created_at).toLocaleDateString(
+                          "id-ID",
+                          {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          },
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold tracking-wider uppercase text-zinc-500">
+                    Content / Knowledge
+                  </label>
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <p className="text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap break-words leading-relaxed text-sm sm:text-base">
+                      {selectedDoc.content || "Tidak ada konten."}
                     </p>
                   </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold tracking-wider uppercase text-zinc-500">
-                  Content / Knowledge
-                </label>
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                  <p className="text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
-                    {selectedDoc.content || "Tidak ada konten."}
-                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* FOOTER MODAL */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
-              <Button
-                variant="outline"
-                onClick={() => setShowDeleteAlert(true)}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 dark:border-red-900/50 dark:hover:bg-red-950/30 transition-colors"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Hapus
-              </Button>
+              {/* Footer Modal */}
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedDoc(null);
+                    setTimeout(() => setShowDeleteAlert(true), 150);
+                  }}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 dark:border-red-900/50 dark:hover:bg-red-950/30 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Hapus
+                </Button>
 
-              <Button
-                className="bg-zinc-900 hover:bg-mula-dark hover:text-zinc-900 text-white dark:bg-mula dark:text-zinc-900 dark:hover:bg-zinc-100 transition-colors shadow-sm"
-                onClick={() => {
-                  const lang =
-                    activeTable === "knowledge_entries" ? "id" : "en";
-                  router.push(
-                    `/admin/knowledge/${selectedDoc.id}/edit?lang=${lang}`,
-                  );
-                }}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Data
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+                <Button
+                  className="bg-zinc-900 hover:bg-mula-dark hover:text-zinc-900 text-white dark:bg-mula dark:text-zinc-900 dark:hover:bg-zinc-100 transition-colors shadow-sm"
+                  onClick={() => {
+                    const lang =
+                      activeTable === "knowledge_entries" ? "id" : "en";
+                    router.push(
+                      `/admin/knowledge/${selectedDoc.id}/edit?lang=${lang}`,
+                    );
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Data
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
         <AlertDialogContent className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-[99999]">
@@ -466,8 +477,8 @@ export default function KnowledgeBasePage() {
               Yakin mau hapus dokumen ini?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-500 dark:text-zinc-400">
-              Data "{selectedDoc?.title}" yang dihapus nggak bisa dikembalikan
-              lagi. MILA nggak akan punya akses ke informasi ini.
+              Data yang dihapus nggak bisa dikembalikan lagi. MILA nggak akan
+              punya akses ke informasi ini.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -493,7 +504,7 @@ export default function KnowledgeBasePage() {
 
       {/* SCROLL TO TOP BUTTON */}
       <div
-        className={`fixed bottom-6 right-6 z-[50] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`fixed bottom-6 right-6 z-[50] transition-all duration-500 ease-out ${
           showScrollTop
             ? "opacity-100 translate-y-0"
             : "opacity-0 translate-y-10 pointer-events-none"

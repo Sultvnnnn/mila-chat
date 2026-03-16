@@ -70,28 +70,35 @@ export default function EditKnowledgePage() {
 
     setIsSubmitting(true);
 
-    const payload: any = {
-      title: title.trim(),
-      content: content.trim(),
-      category: category,
-    };
+    try {
+      const res = await fetch("/api/knowledge", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: id,
+          title: title.trim(),
+          content: content.trim(),
+          category: category,
+          lang: lang,
+          status: status,
+        }),
+      });
 
-    if (lang === "id") {
-      payload.status = status;
-    }
+      const data = await res.json();
 
-    const { error } = await supabase
-      .from(targetTable)
-      .update(payload)
-      .eq("id", id);
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal update data ke server.");
+      }
 
-    setIsSubmitting(false);
-
-    if (error) {
-      setErrorMsg(`Failed to update document: ${error.message}`);
-    } else {
       router.push("/admin/knowledge");
       router.refresh();
+    } catch (error: any) {
+      console.error("Error update data:", error);
+      setErrorMsg(`Gagal update data: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
