@@ -15,6 +15,7 @@ import {
   Loader2,
   Database,
   ArrowUp,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,11 +29,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 
 interface KnowledgeDoc {
   id: string;
@@ -168,6 +170,25 @@ export default function KnowledgeBasePage() {
 
   return (
     <>
+      {/* FLOATING SEARCH BAR */}
+      <div
+        className={`fixed top-20 sm:top-24 left-0 right-0 z-30 flex justify-center px-4 transition-all duration-500 ease-out ${
+          showScrollTop
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-8 opacity-0 pointer-events-none"
+        }`}
+      >
+        <div className="relative w-full max-w-md shadow-xl rounded-xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-mula-dark/40 dark:border-mula/40 ring-4 ring-mula-dark/10 dark:ring-mula/10 p-1 transition-all">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-mula-dark dark:text-mula" />
+          <Input
+            placeholder="Cari title, konten, atau kategori..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-transparent border-none focus-visible:ring-0 h-11 w-full rounded-lg text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 placeholder:font-normal"
+          />
+        </div>
+      </div>
+
       <div className="space-y-6 animate-in fade-in duration-500 font-sans pb-10">
         {/* HEADER PAGE */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -256,14 +277,41 @@ export default function KnowledgeBasePage() {
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {isLoading && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-16 text-center">
-                      <div className="flex flex-col items-center justify-center text-zinc-500">
-                        <Loader2 className="h-8 w-8 animate-spin text-mula-dark mb-4" />
-                        <p>Menarik data dari database...</p>
-                      </div>
-                    </td>
-                  </tr>
+                  <>
+                    {[...Array(5)].map((_, index) => (
+                      <tr
+                        key={`skeleton-${index}`}
+                        className="border-b border-zinc-200 dark:border-zinc-800"
+                      >
+                        {/* Title Skeleton */}
+                        <td className="px-4 md:px-6 py-4">
+                          <div className="flex items-center gap-3 animate-pulse">
+                            <div className="h-8 w-8 bg-zinc-200 dark:bg-zinc-800 rounded-lg shrink-0 hidden sm:block"></div>
+                            <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded-md w-3/4"></div>
+                          </div>
+                        </td>
+                        {/* Content Skeleton */}
+                        <td className="px-4 md:px-6 py-4 hidden md:table-cell">
+                          <div className="animate-pulse space-y-2">
+                            <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded-md w-full"></div>
+                            <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded-md w-2/3"></div>
+                          </div>
+                        </td>
+                        {/* Category Skeleton */}
+                        <td className="px-4 md:px-6 py-4 hidden sm:table-cell">
+                          <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded-md w-20 animate-pulse"></div>
+                        </td>
+                        {/* Status Skeleton */}
+                        <td className="px-4 md:px-6 py-4">
+                          <div className="h-5 w-16 bg-zinc-200 dark:bg-zinc-800 rounded-full animate-pulse"></div>
+                        </td>
+                        {/* Date Skeleton */}
+                        <td className="px-4 md:px-6 py-4 hidden lg:table-cell">
+                          <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded-md w-24 animate-pulse"></div>
+                        </td>
+                      </tr>
+                    ))}
+                  </>
                 )}
 
                 {!isLoading && filteredData.length === 0 && (
@@ -348,26 +396,26 @@ export default function KnowledgeBasePage() {
         </div>
       </div>
 
-      {/* 4. MODAL DETAIL DATA */}
-      <Dialog
+      {/* 4. DRAWER DETAIL DATA */}
+      <Drawer
         open={!!selectedDoc}
         onOpenChange={(open) => !open && setSelectedDoc(null)}
       >
-        <DialogContent className="sm:max-w-2xl bg-white dark:bg-zinc-950 p-0 overflow-hidden border-zinc-200 dark:border-zinc-800 gap-0">
+        <DrawerContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[96vh]">
           {selectedDoc && (
-            <>
-              {/* Header Modal */}
-              <DialogHeader className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-row items-center gap-3 space-y-0">
-                <div className="p-2 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-lg shrink-0">
+            <div className="w-full max-w-3xl mx-auto flex flex-col overflow-hidden">
+              {/* Header Drawer */}
+              <DrawerHeader className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-row items-center gap-3 shrink-0 text-left">
+                <div className="p-2 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-lg shrink-0 hidden sm:block">
                   {(() => {
                     const Icon = getCategoryIcon(selectedDoc.category);
                     return <Icon className="h-5 w-5" />;
                   })()}
                 </div>
-                <div className="text-left flex-1 pr-4">
-                  <DialogTitle className="font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1">
+                <div className="flex-1 pr-4">
+                  <DrawerTitle className="font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1">
                     Detail Dokumen
-                  </DialogTitle>
+                  </DrawerTitle>
                   <p className="text-xs text-zinc-500 capitalize mt-1">
                     {activeTable === "knowledge_entries"
                       ? "Bahasa Indonesia"
@@ -375,20 +423,29 @@ export default function KnowledgeBasePage() {
                     • {selectedDoc.category || "Uncategorized"}
                   </p>
                 </div>
-              </DialogHeader>
+                <DrawerClose asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </DrawerClose>
+              </DrawerHeader>
 
-              {/* Body Modal */}
-              <div className="p-6 overflow-y-auto max-h-[60vh] space-y-6">
+              {/* Body Drawer (Bisa di-scroll kalau konten panjang) */}
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold tracking-wider uppercase text-zinc-500">
                     Title
                   </label>
-                  <h2 className="text-xl sm:text-2xl font-serif font-bold text-zinc-900 dark:text-zinc-100">
+                  <h2 className="text-2xl font-serif font-bold text-zinc-900 dark:text-zinc-100 leading-tight">
                     {selectedDoc.title}
                   </h2>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold tracking-wider uppercase text-zinc-500">
                       Status
@@ -411,7 +468,7 @@ export default function KnowledgeBasePage() {
                       <label className="text-xs font-bold tracking-wider uppercase text-zinc-500">
                         Dibuat Pada
                       </label>
-                      <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                      <p className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">
                         {new Date(selectedDoc.created_at).toLocaleDateString(
                           "id-ID",
                           {
@@ -425,34 +482,31 @@ export default function KnowledgeBasePage() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 pb-4">
                   <label className="text-xs font-bold tracking-wider uppercase text-zinc-500">
                     Content / Knowledge
                   </label>
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                    <p className="text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap break-words leading-relaxed text-sm sm:text-base">
+                  <div className="p-5 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <p className="text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap break-words leading-relaxed">
                       {selectedDoc.content || "Tidak ada konten."}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Footer Modal */}
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+              {/* Footer Drawer */}
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shrink-0 mb-safe">
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    setSelectedDoc(null);
-                    setTimeout(() => setShowDeleteAlert(true), 150);
-                  }}
+                  onClick={() => setShowDeleteAlert(true)}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 dark:border-red-900/50 dark:hover:bg-red-950/30 transition-colors"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Hapus
+                  <Trash2 className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Hapus</span>
                 </Button>
 
                 <Button
-                  className="bg-zinc-900 hover:bg-mula-dark hover:text-zinc-900 text-white dark:bg-mula dark:text-zinc-900 dark:hover:bg-zinc-100 transition-colors shadow-sm"
+                  className="bg-zinc-900 hover:bg-mula-dark text-white dark:bg-mula dark:text-zinc-900 transition-colors shadow-sm flex-1 sm:flex-none"
                   onClick={() => {
                     const lang =
                       activeTable === "knowledge_entries" ? "id" : "en";
@@ -465,10 +519,10 @@ export default function KnowledgeBasePage() {
                   Edit Data
                 </Button>
               </div>
-            </>
+            </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </DrawerContent>
+      </Drawer>
 
       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
         <AlertDialogContent className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-[99999]">

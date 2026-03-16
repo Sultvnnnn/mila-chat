@@ -61,42 +61,33 @@ export default function EditKnowledgePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg("");
-
-    if (!title.trim() || !content.trim()) {
-      setErrorMsg("Title and content cannot be empty.");
-      return;
-    }
-
     setIsSubmitting(true);
 
+    const searchParams = new URLSearchParams(window.location.search);
+    const lang = searchParams.get("lang") || "id";
+    const targetTable = lang === "en" ? "documents_en" : "knowledge_entries";
+
     try {
-      const res = await fetch("/api/knowledge", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const res = await fetch(`/api/knowledge/${params.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: id,
-          title: title.trim(),
-          content: content.trim(),
-          category: category,
-          lang: lang,
-          status: status,
+          title,
+          category,
+          content,
+          status,
+          targetTable,
         }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal update data ke server.");
-      }
+      if (!res.ok) throw new Error(data.error);
 
       router.push("/admin/knowledge");
-      router.refresh();
-    } catch (error: any) {
-      console.error("Error update data:", error);
-      setErrorMsg(`Gagal update data: ${error.message}`);
+    } catch (error) {
+      console.error(`Failed to update knowledge entry: ${error}`);
+      alert("Failed to update document. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -165,21 +156,56 @@ export default function EditKnowledgePage() {
               />
             </div>
 
-            {/* CATEGORY */}
+            {/* DROPDOWN CATEGORY */}
             <div className="space-y-2">
-              <label className="text-sm font-bold tracking-wider uppercase text-zinc-500">
-                Kategori
+              <label className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                Kategori{" "}
+                <span className="text-zinc-400 font-normal">(Category)</span>
               </label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="h-11 w-full bg-zinc-50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus:ring-mula-dark text-zinc-900 dark:text-zinc-100">
-                  <SelectValue placeholder="Pilih kategori..." />
+              <Select
+                value={category}
+                onValueChange={(value) => setCategory(value)}
+              >
+                <SelectTrigger className="w-full h-11 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-mula-dark outline-none transition-all dark:text-zinc-100">
+                  <SelectValue placeholder="Pilih Kategori..." />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
-                  <SelectItem value="faq">FAQ / General</SelectItem>
-                  <SelectItem value="kelas">Info Kelas (Class)</SelectItem>
-                  <SelectItem value="harga">Harga / Pricing</SelectItem>
-                  <SelectItem value="jadwal">Jadwal / Schedule</SelectItem>
-                  <SelectItem value="studio">Info Studio</SelectItem>
+                <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-[99999]">
+                  <SelectItem
+                    value="Studio"
+                    className="cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800"
+                  >
+                    Studio & Fasilitas
+                  </SelectItem>
+                  <SelectItem
+                    value="Class"
+                    className="cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800"
+                  >
+                    Kelas & Jadwal (Schedule)
+                  </SelectItem>
+                  <SelectItem
+                    value="Price"
+                    className="cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800"
+                  >
+                    Harga & Membership (Price)
+                  </SelectItem>
+                  <SelectItem
+                    value="Faq"
+                    className="cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800"
+                  >
+                    FAQ & Bantuan
+                  </SelectItem>
+                  <SelectItem
+                    value="Policy"
+                    className="cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800"
+                  >
+                    Kebijakan (Policy)
+                  </SelectItem>
+                  <SelectItem
+                    value="General"
+                    className="cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800"
+                  >
+                    Lainnya (General)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
