@@ -6,12 +6,17 @@
 
 ---
 
-## 🚀 Key Features (Week 3 Completed)
+## 🚀 Key Features
 
 ### 🧠 Advanced RAG Engine
 - **Hybrid Search:** Combines semantic search (OpenAI Embeddings) with keyword matching using **Supabase pgvector** for high accuracy.
 - **Knowledge Base:** Indexed from real studio PDFs (Schedules, Pricing, Locations, Policies).
 - **Anti-Hallucination:** Strictly answers based on indexed data; admits ignorance politely when data is missing.
+
+### 🗄️ Admin CMS & Knowledge Management (New!)
+- **Full CRUD System:** Create, Read, Update, and Delete knowledge base documents directly from a secure admin dashboard.
+- **Dual-Language Control:** Seamlessly toggle and manage Indonesian (`knowledge_entries`) and English (`documents_en`) database tables.
+- **Modern & Safe UI/UX:** Built with Shadcn UI featuring smooth dropdowns, smart routing (`/admin/knowledge/[id]/edit`), and protective Alert Dialogs to prevent accidental data loss.
 
 ### 🤖 Persona Engineering
 - **Nurturing Tone:** Calibrated to sound like a supportive "Yoga Senior" (Warm, Friendly, Professional).
@@ -34,54 +39,41 @@
 | Database | [Supabase](https://supabase.com/) (PostgreSQL + pgvector) |
 | Embeddings | OpenAI `text-embedding-3-small` |
 | Generation | Anthropic `claude-3-haiku-20240307` |
-| Styling | Tailwind CSS |
+| UI Components | Tailwind CSS + [shadcn/ui](https://ui.shadcn.com/) |
 
 ---
 
 ## 📂 Project Structure
-```
+```text
 ├── src
 │   ├── app
+│   │   ├── (auth)
+│   │   │   └── login/page.tsx
+│   │   ├── admin                 # Admin CMS Dashboard
+│   │   │   ├── knowledge
+│   │   │   │   ├── [id]/edit/page.tsx  # Dynamic Edit Form
+│   │   │   │   ├── new/page.tsx        # Create Data Form
+│   │   │   │   └── page.tsx            # Data Table & Delete Logic
+│   │   │   ├── conversations/page.tsx
+│   │   │   ├── settings/page.tsx
+│   │   │   ├── tools/page.tsx
+│   │   │   ├── layout.tsx        # Admin Sidebar & Layout
+│   │   │   └── page.tsx          # Admin Overview
 │   │   ├── api
-│   │   │   ├── chat
-│   │   │   │   └── route.ts          # RAG pipeline: embed → search → Claude → reply
-│   │   │   └── seed
-│   │   │       └── route.ts          # One-time script to seed knowledge base to Supabase
-│   │   ├── fonts
-│   │   │   ├── GeistMonoVF.woff
-│   │   │   └── GeistVF.woff
-│   │   ├── globals.css
-│   │   ├── layout.tsx                # Root layout
-│   │   └── page.tsx                  # Chat UI
+│   │   │   ├── _seed/route.ts    # Seed script to Supabase
+│   │   │   └── chat/route.ts     # RAG pipeline: embed → search → Claude → reply
+│   │   ├── layout.tsx            # Root layout
+│   │   └── page.tsx              # Public Chat UI
 │   ├── components
-│   │   ├── ui
-│   │   │   ├── avatar.tsx            # Avatar component (shadcn/ui)
-│   │   │   ├── button.tsx            # Button component (shadcn/ui)
-│   │   │   ├── card.tsx              # Card component (shadcn/ui)
-│   │   │   ├── input-group.tsx       # Input group component (shadcn/ui)
-│   │   │   ├── input.tsx             # Input component (shadcn/ui)
-│   │   │   ├── skeleton.tsx          # Skeleton loading (shadcn/ui)
-│   │   │   └── textarea.tsx          # Textarea component (shadcn/ui)
-│   │   ├── AnimatedGreeting.tsx      # Typewriter greeting animation
-│   │   ├── ThemeToggle.tsx           # Dark/light mode toggle button
-│   │   └── theme-provider.tsx        # Dark/light mode provider
+│   │   ├── ui                    # shadcn/ui components (alert-dialog, select, etc.)
+│   │   ├── AnimatedGreeting.tsx
+│   │   └── ThemeToggle.tsx
 │   └── lib
-│       ├── data
-│       │   └── yogaData.ts           # Q&A knowledge base (jadwal, harga, lokasi, dll.)
-│       ├── prompts
-│       │   └── systemPrompt.ts       # MILA's persona, rules & business logic prompt
-│       ├── constants.ts              # App-wide constants (greeting phrases, dll.)
-│       ├── openai.ts                 # OpenAI embedding helper
-│       ├── supabase.ts               # Supabase client
-│       └── utils.ts                  # Shared utility functions (cn, dll.)
-├── .eslintrc.json
-├── .gitignore
-├── README.md
-├── components.json                   # shadcn/ui config
-├── next.config.mjs
-├── package-lock.json
-├── package.json
-├── postcss.config.mjs
+│       ├── data/yogaData.ts      # Q&A knowledge base
+│       ├── prompts/systemPrompt.ts
+│       ├── openai.ts             # OpenAI embedding helper
+│       └── supabase.ts           # Supabase client
+├── middleware.ts
 ├── tailwind.config.ts
 └── tsconfig.json
 ```
