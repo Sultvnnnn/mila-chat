@@ -40,9 +40,9 @@ export async function POST(req: Request) {
     let searchError;
 
     if (isEnglish) {
-      const { data, error } = await supabase.rpc("match_documents_en", {
+      const { data, error } = await supabase.rpc("hybrid_search_en", {
         query_embedding: embedding,
-        match_threshold: 0.5,
+        query_text: query,
         match_count: 6,
       });
       documents = data;
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
 
     return result.toUIMessageStreamResponse();
   } catch (error) {
-    console.error(`Chat error: ${error}`);
+    console.error(`Chat API error: ${error}`);
     return new Response(JSON.stringify({ error: "Gagal memproses chat" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
