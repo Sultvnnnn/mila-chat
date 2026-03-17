@@ -345,7 +345,10 @@ export default function KnowledgeBasePage() {
                     return (
                       <tr
                         key={item.id}
-                        onClick={() => setSelectedDoc(item)}
+                        onClick={() => {
+                          setSelectedDoc(item);
+                          setIsDrawerOpen(true);
+                        }}
                         className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer group"
                       >
                         <td className="px-4 md:px-6 py-4">
@@ -409,7 +412,7 @@ export default function KnowledgeBasePage() {
           }
         }}
       >
-        <DrawerContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[96vh]">
+        <DrawerContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[96vh] w-full max-w-3xl mx-auto rounded-t-2xl sm:rounded-t-3xl">
           {selectedDoc ? (
             <div className="w-full max-w-3xl mx-auto flex flex-col overflow-hidden">
               {/* Header Drawer */}
