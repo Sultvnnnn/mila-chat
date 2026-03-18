@@ -16,11 +16,16 @@ import {
   Database,
   ArrowUp,
   X,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -60,6 +65,11 @@ export default function KnowledgeBasePage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkDeleteAlert, setShowBulkDeleteAlert] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // init Supabase
   const supabase = useMemo(
@@ -70,6 +80,13 @@ export default function KnowledgeBasePage() {
       ),
     [],
   );
+
+  // reset pagination and selection when table or search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedIds([]);
+  }, [activeTable, searchQuery]);
+
   // fetch knowledge base data
   useEffect(() => {
     const fetchData = async () => {
@@ -123,6 +140,54 @@ export default function KnowledgeBasePage() {
       content.includes(query)
     );
   });
+
+  // logic pagination
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedData = filteredData.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
+
+  // logic checkbox select
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(paginatedData.map((item) => item.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds((prev) => [...prev, id]);
+    } else {
+      setSelectedIds((prev) => prev.filter((itemId) => itemId !== id));
+    }
+  };
+
+  // logic bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkDeleting(true);
+
+    const { error } = await supabase
+      .from(activeTable)
+      .delete()
+      .in("id", selectedIds);
+
+    setIsBulkDeleting(false);
+
+    if (error) {
+      alert(`Failed to delete selected items: ${error.message}`);
+    } else {
+      setKnowledgeData((prev) =>
+        prev.filter((item) => !selectedIds.includes(item.id)),
+      );
+      setSelectedIds([]);
+      setShowBulkDeleteAlert(false);
+    }
+  };
 
   // delete logic
   const handleDelete = async () => {
@@ -257,12 +322,44 @@ export default function KnowledgeBasePage() {
           </div>
         </div>
 
+        {/* ACTION BAR BULK DELETE */}
+        {selectedIds.length > 0 && (
+          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg p-3 mb-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+            <span className="text-sm font-medium text-red-800 dark:text-red-400">
+              {selectedIds.length} dokumen terpilih
+            </span>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowBulkDeleteAlert(true)}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Hapus Terpilih
+            </Button>
+          </div>
+        )}
+
         {/* TABLE KNOWLEDGE */}
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden min-h-[400px]">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left whitespace-nowrap md:whitespace-normal">
               <thead className="bg-zinc-50 dark:bg-zinc-950/50 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
                 <tr>
+                  {/* TH CHECKBOX */}
+                  <th className="px-4 py-4 w-12 text-center">
+                    <input
+                      type="checkbox"
+                      className="rounded border-zinc-300 dark:border-zinc-700 text-mula-dark focus:ring-mula cursor-pointer"
+                      checked={
+                        paginatedData.length > 0 &&
+                        paginatedData.every((item) =>
+                          selectedIds.includes(item.id),
+                        )
+                      }
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                    />
+                  </th>
                   <th className="px-4 md:px-6 py-4 font-medium">Title</th>
                   <th className="px-4 md:px-6 py-4 font-medium hidden md:table-cell w-[40%]">
                     Content
@@ -332,7 +429,7 @@ export default function KnowledgeBasePage() {
                 )}
 
                 {!isLoading &&
-                  filteredData.map((item) => {
+                  paginatedData.map((item) => {
                     const Icon = getCategoryIcon(item.category);
                     const dateFormatted = item.created_at
                       ? new Date(item.created_at).toLocaleDateString("id-ID", {
@@ -351,6 +448,20 @@ export default function KnowledgeBasePage() {
                         }}
                         className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer group"
                       >
+                        {/* TD CHECKBOX */}
+                        <td
+                          className="px-4 py-4 w-12 text-center"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            className="rounded border-zinc-300 dark:border-zinc-700 text-mula-dark focus:ring-mula cursor-pointer"
+                            checked={selectedIds.includes(item.id)}
+                            onChange={(e) =>
+                              handleSelectOne(item.id, e.target.checked)
+                            }
+                          />
+                        </td>
                         <td className="px-4 md:px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="p-2 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-lg shrink-0 hidden sm:block">
@@ -397,7 +508,64 @@ export default function KnowledgeBasePage() {
               </tbody>
             </table>
           </div>
+
+          {/* UI PAGINATION */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50">
+              <span className="text-xs sm:text-sm text-zinc-500">
+                Halaman {currentPage} dari {totalPages}
+              </span>
+              <div className="flex gap-1 sm:gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  title="Ke Halaman Pertama"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  title="Ke Halaman Sebelumnya"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  title="Ke Halaman Selanjutnya"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  title="Ke Halaman Terakhir"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
+        <div className="h-16 md:h-8 w-full flex-shrink-0" />
       </div>
 
       {/* DRAWER DETAIL DATA */}
@@ -537,6 +705,7 @@ export default function KnowledgeBasePage() {
         </DrawerContent>
       </Drawer>
 
+      {/* ALERT DIALOG DELETE */}
       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
         <AlertDialogContent className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-[99999]">
           <AlertDialogHeader>
@@ -569,9 +738,48 @@ export default function KnowledgeBasePage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* ALERT DIALOG BULK DELETE */}
+      <AlertDialog
+        open={showBulkDeleteAlert}
+        onOpenChange={setShowBulkDeleteAlert}
+      >
+        <AlertDialogContent className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-[99999]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-zinc-900 dark:text-zinc-100">
+              Hapus {selectedIds.length} Dokumen?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500 dark:text-zinc-400">
+              Tindakan ini tidak bisa dibatalkan. {selectedIds.length} data yang
+              Anda centang akan dihapus secara permanen dari database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={isBulkDeleting}
+              className="bg-zinc-100 hover:bg-zinc-200 text-zinc-900 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-100 border-none transition-colors"
+            >
+              Batal
+            </AlertDialogCancel>
+            <Button
+              onClick={(e) => {
+                e.preventDefault();
+                handleBulkDelete();
+              }}
+              disabled={isBulkDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white shadow-sm transition-colors"
+            >
+              {isBulkDeleting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              {isBulkDeleting ? "Menghapus..." : "Ya, Hapus Semua"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* SCROLL TO TOP BUTTON */}
       <div
-        className={`fixed bottom-6 right-6 z-[50] transition-all duration-500 ease-out ${
+        className={`fixed bottom-6 right-4 md:right-6 z-[50] transition-all duration-500 ease-out ${
           showScrollTop
             ? "opacity-100 translate-y-0"
             : "opacity-0 translate-y-10 pointer-events-none"
@@ -580,9 +788,9 @@ export default function KnowledgeBasePage() {
         <Button
           size="icon"
           onClick={scrollToTop}
-          className="h-12 w-12 rounded-full shadow-lg bg-zinc-900 hover:bg-mula-dark text-white hover:text-zinc-900 dark:bg-mula dark:text-zinc-900 dark:hover:bg-zinc-100 transition-colors"
+          className="h-10 w-10 md:h-12 md:w-12 rounded-full shadow-lg bg-zinc-900 hover:bg-mula-dark text-white hover:text-zinc-900 dark:bg-mula dark:text-zinc-900 dark:hover:bg-zinc-100 transition-colors"
         >
-          <ArrowUp className="h-5 w-5" />
+          <ArrowUp className="h-4 w-4 md:h-5 md:w-5" />
         </Button>
       </div>
     </>
