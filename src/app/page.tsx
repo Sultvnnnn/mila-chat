@@ -30,9 +30,11 @@ export default function Home() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [input, setInput] = useState("");
+  const [sessionId] = useState(() => crypto.randomUUID());
 
   //? hook useChat
   const { messages, sendMessage, status } = useChat({
+    id: sessionId,
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),

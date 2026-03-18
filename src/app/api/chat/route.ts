@@ -3,6 +3,7 @@ import { generateEmbedding } from "@/lib/openai";
 import buildSystemPrompt from "@/lib/prompts/systemPrompt";
 import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
+import { channel } from "diagnostics_channel";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,10 @@ const isEnglishLanguage = (text: string): boolean => {
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json();
+    const body = await req.json();
+    const { messages, id: conversationId } = body;
+
+    const chatId = conversationId || crypto.randomUUID();
 
     const coreMessages = messages.map((msg: any) => ({
       role: msg.role,
@@ -25,7 +29,6 @@ export async function POST(req: Request) {
     }));
 
     const lastMessage = coreMessages[coreMessages.length - 1];
-
     const query = lastMessage.content;
 
     // detect language
@@ -58,7 +61,7 @@ export async function POST(req: Request) {
     }
 
     if (searchError) {
-      console.error(`Error Supabase: ${JSON.stringify(searchError)}`);
+      console.error(`Supabase Search Error: ${JSON.stringify(searchError)}`);
       throw searchError;
     }
 
@@ -97,14 +100,45 @@ export async function POST(req: Request) {
       model: anthropic("claude-3-haiku-20240307"),
       system: systemPrompt,
       messages: coreMessages,
+      async onFinish({ text }) {
+        const finalMessage = [
+          ...messages,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: text,
+          },
+        ];
+
+        const { error: dbError } = await supabase.from("conversations").upsert(
+          {
+            id: chatId,
+            channel: "web",
+            messages: finalMessage,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        );
+
+        if (dbError) {
+          console.error(
+            `Database Error: Failed to save conversation history to Supabase. Details: ${JSON.stringify(dbError)}`,
+          );
+        }
+      },
     });
 
     return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error(`Chat API error: ${error}`);
-    return new Response(JSON.stringify({ error: "Gagal memproses chat" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: "Terjadi kesalahan sistem saat memproses chat.",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 }
