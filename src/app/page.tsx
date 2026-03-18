@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import {
@@ -11,6 +12,7 @@ import {
   CreditCard,
   MapPin,
   Dumbbell,
+  RefreshCcw,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +25,16 @@ import {
   InputGroupAddon,
   InputGroupButton,
 } from "@/components/ui/input-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Loading from "./loading";
 
 export default function Home() {
@@ -30,15 +42,48 @@ export default function Home() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [input, setInput] = useState("");
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [sessionId, setSessionId] = useState<string>("");
+  const [showResetAlert, setShowResetAlert] = useState(false);
 
   //? hook useChat
-  const { messages, sendMessage, status } = useChat({
+  const { messages, setMessages, sendMessage, status } = useChat({
     id: sessionId,
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
   });
+
+  //? check session ID dan load riwayat obrolan
+  useEffect(() => {
+    const initializeChat = async () => {
+      let currentSessionId = localStorage.getItem("mila_session_id");
+
+      if (currentSessionId) {
+        setSessionId(currentSessionId);
+        const { data, error } = await supabase
+          .from("conversations")
+          .select("messages")
+          .eq("id", currentSessionId)
+          .single();
+
+        if (error) {
+          console.error(
+            `Database Error: Failed to retrieve conversation history for session ${currentSessionId}. Details: ${error.message}`,
+          );
+        }
+
+        if (data && data.messages) {
+          setMessages(data.messages);
+        }
+      } else {
+        currentSessionId = crypto.randomUUID();
+        localStorage.setItem("mila_session_id", currentSessionId);
+        setSessionId(currentSessionId);
+      }
+    };
+
+    initializeChat();
+  }, [setMessages]);
 
   const isLoading = status === "submitted" || status === "streaming";
 
@@ -77,6 +122,14 @@ export default function Home() {
       e.preventDefault();
       onSubmit();
     }
+  };
+
+  // reset chat
+  const handleNewChat = () => {
+    const newSessionId = crypto.randomUUID();
+    localStorage.setItem("mila_session_id", newSessionId);
+    setSessionId(newSessionId);
+    setMessages([]);
   };
 
   return (
@@ -123,6 +176,17 @@ export default function Home() {
             )}
           </div>
           <div className="flex items-center gap-3">
+            {messages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowResetAlert(true)}
+                className="text-muted-foreground hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                title="Mulai Obrolan Baru"
+              >
+                <RefreshCcw className="h-5 w-5" />
+              </Button>
+            )}
             <ThemeToggle />
           </div>
         </header>
@@ -196,6 +260,12 @@ export default function Home() {
                       key={m.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
+                      exit={{
+                        opacity: 0,
+                        scale: 0.95,
+                        y: 10,
+                        transition: { duration: 0.3 },
+                      }}
                       className={`flex gap-3 ${
                         m.role === "user" ? "justify-end" : "justify-start"
                       }`}
@@ -331,6 +401,35 @@ export default function Home() {
         {/* INPUT GROUP TEXTAREA END */}
       </div>
       {/* CONTAINER UTAMA END */}
+
+      {/* ALERT DIALOG RESET CHAT */}
+      <AlertDialog open={showResetAlert} onOpenChange={setShowResetAlert}>
+        <AlertDialogContent className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-[99999]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-zinc-900 dark:text-zinc-100">
+              Mulai sesi obrolan baru?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500 dark:text-zinc-400">
+              Obrolan akan di-reset sehingga Anda bisa memulai topik atau
+              pertanyaan baru dengan MILA.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-zinc-100 hover:bg-zinc-200 text-zinc-900 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-100 border-none transition-colors">
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                handleNewChat();
+                setShowResetAlert(false);
+              }}
+              className="bg-mula hover:bg-mula-dark text-zinc-900 transition-colors"
+            >
+              Ya, Mulai Baru
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
