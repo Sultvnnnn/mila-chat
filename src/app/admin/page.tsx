@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   MessageSquare,
   Users,
@@ -44,205 +45,221 @@ export default function AdminDashboardPage() {
   const [chartData, setChartData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setIsLoading(true);
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
 
-      try {
-        const [
-          { data: convData, error: convError },
-          { data: idKnowledgeData, error: idKnowError },
-          { data: enKnowledgeData, error: enKnowError },
-          { data: escData, error: escError },
-        ] = await Promise.all([
-          supabase
-            .from("conversations")
-            .select("messages, updated_at")
-            .order("updated_at", { ascending: false }),
+    try {
+      const [
+        { data: convData, error: convError },
+        { data: idKnowledgeData, error: idKnowError },
+        { data: enKnowledgeData, error: enKnowError },
+        { data: escData, error: escError },
+      ] = await Promise.all([
+        supabase
+          .from("conversations")
+          .select("messages, updated_at")
+          .order("updated_at", { ascending: false }),
 
-          supabase.from("knowledge_entries").select("created_at"),
-          supabase.from("documents_en").select("created_at"),
-          supabase.from("escalations").select("created_at"),
-        ]);
+        supabase.from("knowledge_entries").select("created_at"),
+        supabase.from("documents_en").select("created_at"),
+        supabase.from("escalations").select("created_at"),
+      ]);
 
-        if (convError)
-          console.error(
-            `Database Error: Failed to fetch conversations. Details: ${convError.message}`,
-          );
-        if (idKnowError)
-          console.error(
-            `Database Error: Failed to fetch ID knowledge entries count. Details: ${idKnowError.message}`,
-          );
-        if (enKnowError)
-          console.error(
-            `Database Error: Failed to fetch EN knowledge entries count. Details: ${enKnowError.message}`,
-          );
-        if (escError)
-          console.error(
-            `Database Error: Failed to fetch escalations. Details: ${escError.message}`,
-          );
+      if (convError)
+        console.error(
+          `Database Error: Failed to fetch conversations. Details: ${convError.message}`,
+        );
+      if (idKnowError)
+        console.error(
+          `Database Error: Failed to fetch ID knowledge entries count. Details: ${idKnowError.message}`,
+        );
+      if (enKnowError)
+        console.error(
+          `Database Error: Failed to fetch EN knowledge entries count. Details: ${enKnowError.message}`,
+        );
+      if (escError)
+        console.error(
+          `Database Error: Failed to fetch escalations. Details: ${escError.message}`,
+        );
 
-        if (convData) {
-          const totalSessions = convData.length;
-          const totalMessages = convData.reduce(
-            (acc, curr) => acc + (curr.messages?.length || 0),
-            0,
-          );
-          const totalKnowledge =
-            (idKnowledgeData?.length || 0) + (enKnowledgeData?.length || 0);
-          const escalationsCount = escData?.length || 0;
+      if (convData) {
+        const totalSessions = convData.length;
+        const totalMessages = convData.reduce(
+          (acc, curr) => acc + (curr.messages?.length || 0),
+          0,
+        );
+        const totalKnowledge =
+          (idKnowledgeData?.length || 0) + (enKnowledgeData?.length || 0);
+        const escalationsCount = escData?.length || 0;
 
-          // Logic Trend Harian
-          const now = new Date();
-          const todayStart = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate(),
-          ).getTime();
-          const yesterdayStart = todayStart - 86400000;
+        // Logic Trend Harian
+        const now = new Date();
+        const todayStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        ).getTime();
+        const yesterdayStart = todayStart - 86400000;
 
-          let todaySessions = 0,
-            yesterdaySessions = 0;
-          let todayMessages = 0,
-            yesterdayMessages = 0;
-          let todayKnowledgeCount = 0,
-            yesterdayKnowledgeCount = 0;
-          let todayEsc = 0,
-            yesterdayEsc = 0;
+        let todaySessions = 0,
+          yesterdaySessions = 0;
+        let todayMessages = 0,
+          yesterdayMessages = 0;
+        let todayKnowledgeCount = 0,
+          yesterdayKnowledgeCount = 0;
+        let todayEsc = 0,
+          yesterdayEsc = 0;
 
-          // Hitung tren obrolan
-          convData.forEach((chat) => {
-            const time = new Date(chat.updated_at).getTime();
-            const msgs = chat.messages?.length || 0;
-            if (time >= todayStart) {
-              todaySessions++;
-              todayMessages += msgs;
-            } else if (time >= yesterdayStart && time < todayStart) {
-              yesterdaySessions++;
-              yesterdayMessages += msgs;
-            }
-          });
+        // Hitung tren obrolan
+        convData.forEach((chat) => {
+          const time = new Date(chat.updated_at).getTime();
+          const msgs = chat.messages?.length || 0;
+          if (time >= todayStart) {
+            todaySessions++;
+            todayMessages += msgs;
+          } else if (time >= yesterdayStart && time < todayStart) {
+            yesterdaySessions++;
+            yesterdayMessages += msgs;
+          }
+        });
 
-          // Hitung tren knowledge
-          const allKnowledge = [
-            ...(idKnowledgeData || []),
-            ...(enKnowledgeData || []),
-          ];
-          allKnowledge.forEach((doc) => {
-            const time = doc.created_at
-              ? new Date(doc.created_at).getTime()
-              : 0;
-            if (time >= todayStart) todayKnowledgeCount++;
-            else if (time >= yesterdayStart && time < todayStart)
-              yesterdayKnowledgeCount++;
-          });
+        // Hitung tren knowledge
+        const allKnowledge = [
+          ...(idKnowledgeData || []),
+          ...(enKnowledgeData || []),
+        ];
+        allKnowledge.forEach((doc) => {
+          const time = doc.created_at ? new Date(doc.created_at).getTime() : 0;
+          if (time >= todayStart) todayKnowledgeCount++;
+          else if (time >= yesterdayStart && time < todayStart)
+            yesterdayKnowledgeCount++;
+        });
 
-          // Hitung tren eskalasi
-          escData?.forEach((esc) => {
-            const time = esc.created_at
-              ? new Date(esc.created_at).getTime()
-              : 0;
-            if (time >= todayStart) todayEsc++;
-            else if (time >= yesterdayStart && time < todayStart)
-              yesterdayEsc++;
-          });
+        // Hitung tren eskalasi
+        escData?.forEach((esc) => {
+          const time = esc.created_at ? new Date(esc.created_at).getTime() : 0;
+          if (time >= todayStart) todayEsc++;
+          else if (time >= yesterdayStart && time < todayStart) yesterdayEsc++;
+        });
 
-          // Helper pembentuk UI Trend
-          const getTrendInfo = (today: number, yesterday: number) => {
-            const diff = today - yesterday;
-            if (diff > 0)
-              return {
-                text: `+${diff} dari kemarin`,
-                color: "text-emerald-500 dark:text-emerald-400",
-                icon: "up",
-              };
-            if (diff < 0)
-              return {
-                text: `${diff} dari kemarin`,
-                color: "text-red-500 dark:text-red-400",
-                icon: "down",
-              };
+        // Helper pembentuk UI Trend
+        const getTrendInfo = (today: number, yesterday: number) => {
+          const diff = today - yesterday;
+          if (diff > 0)
             return {
-              text: "Sama seperti kemarin",
-              color: "text-zinc-500 dark:text-zinc-400",
-              icon: "flat",
+              text: `+${diff} dari kemarin`,
+              color: "text-emerald-500 dark:text-emerald-400",
+              icon: "up",
             };
+          if (diff < 0)
+            return {
+              text: `${diff} dari kemarin`,
+              color: "text-red-500 dark:text-red-400",
+              icon: "down",
+            };
+          return {
+            text: "Sama seperti kemarin",
+            color: "text-zinc-500 dark:text-zinc-400",
+            icon: "flat",
           };
+        };
 
-          // Format Waktu Terakhir
-          let lastActiveFormatted = "Belum ada interaksi";
-          if (convData.length > 0 && convData[0].updated_at) {
-            lastActiveFormatted = new Date(
-              convData[0].updated_at,
-            ).toLocaleString("id-ID", {
+        // Format Waktu Terakhir
+        let lastActiveFormatted = "Belum ada interaksi";
+        if (convData.length > 0 && convData[0].updated_at) {
+          lastActiveFormatted = new Date(convData[0].updated_at).toLocaleString(
+            "id-ID",
+            {
               dateStyle: "medium",
               timeStyle: "short",
-            });
-          }
-
-          // Generate Data untuk Chart
-          const groupedByDate: Record<string, number> = {};
-          convData.forEach((chat) => {
-            const dateStr = new Date(chat.updated_at).toLocaleDateString(
-              "id-ID",
-              { month: "short", day: "numeric" },
-            );
-            groupedByDate[dateStr] =
-              (groupedByDate[dateStr] || 0) + (chat.messages?.length || 0);
-          });
-
-          const formattedChartData = Object.keys(groupedByDate)
-            .reverse()
-            .map((date) => ({
-              name: date,
-              Pesan: groupedByDate[date],
-            }));
-
-          setChartData(formattedChartData);
-          setStats({
-            totalSessions,
-            totalMessages,
-            totalKnowledge,
-            escalations: escalationsCount,
-            lastActive: lastActiveFormatted,
-            trends: {
-              sessions: getTrendInfo(todaySessions, yesterdaySessions),
-              messages: getTrendInfo(todayMessages, yesterdayMessages),
-              knowledge: getTrendInfo(
-                todayKnowledgeCount,
-                yesterdayKnowledgeCount,
-              ),
-              escalations: getTrendInfo(todayEsc, yesterdayEsc),
             },
-          });
+          );
         }
-      } catch (error) {
-        console.error(
-          `Unexpected Error: Failed to fetch dashboard data. Details: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
+        // Generate Data untuk Chart
+        const groupedByDate: Record<string, number> = {};
+        convData.forEach((chat) => {
+          const dateStr = new Date(chat.updated_at).toLocaleDateString(
+            "id-ID",
+            { month: "short", day: "numeric" },
+          );
+          groupedByDate[dateStr] =
+            (groupedByDate[dateStr] || 0) + (chat.messages?.length || 0);
+        });
+
+        const formattedChartData = Object.keys(groupedByDate)
+          .reverse()
+          .map((date) => ({
+            name: date,
+            Pesan: groupedByDate[date],
+          }));
+
+        setChartData(formattedChartData);
+        setStats({
+          totalSessions,
+          totalMessages,
+          totalKnowledge,
+          escalations: escalationsCount,
+          lastActive: lastActiveFormatted,
+          trends: {
+            sessions: getTrendInfo(todaySessions, yesterdaySessions),
+            messages: getTrendInfo(todayMessages, yesterdayMessages),
+            knowledge: getTrendInfo(
+              todayKnowledgeCount,
+              yesterdayKnowledgeCount,
+            ),
+            escalations: getTrendInfo(todayEsc, yesterdayEsc),
+          },
+        });
+      }
+    } catch (error) {
+      console.error(
+        `Unexpected Error: Failed to fetch dashboard data. Details: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchDashboardData();
+    window.addEventListener("refresh-dashboard", fetchDashboardData);
+
+    return () => {
+      window.removeEventListener("refresh-dashboard", fetchDashboardData);
+    };
   }, []);
 
   return (
     <div className="flex-1 p-4 md:p-8 pt-6">
-      {/* HEADER */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-xl shrink-0">
-          <LayoutDashboard className="h-6 w-6" />
+      {/* HEADER DESKTOP */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-xl shrink-0">
+            <LayoutDashboard className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-serif">
+              Dashboard Analitik
+            </h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+              Ringkasan performa dan metrik interaksi MILA AI.
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-serif">
-            Dashboard Analitik
-          </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Ringkasan performa dan metrik interaksi MILA AI.
-          </p>
-        </div>
+
+        {/* TOMBOL REFRESH (HANYA MUNCUL DI DESKTOP) */}
+        <Button
+          onClick={fetchDashboardData}
+          disabled={isLoading}
+          variant="outline"
+          className="hidden md:flex w-fit border-zinc-200 dark:border-zinc-800"
+        >
+          <RefreshCcw
+            className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+          />
+          Segarkan Data
+        </Button>
       </div>
 
       {/* TOP CARDS GRID */}
@@ -319,7 +336,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* CARD TOTAL KNOWLEDGE */}
+        {/* CARD BASIS PENGETAHUAN */}
         <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">

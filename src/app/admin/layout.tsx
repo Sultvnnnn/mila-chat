@@ -13,6 +13,7 @@ import {
   Menu,
   PanelLeft,
   LogOut,
+  RefreshCcw,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -217,7 +218,20 @@ export default function AdminLayout({
               </h2>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
+              {pathname === "/admin" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    window.dispatchEvent(new Event("refresh-dashboard"))
+                  }
+                  className="md:hidden text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  title="Segarkan Data"
+                >
+                  <RefreshCcw className="h-5 w-5" />
+                </Button>
+              )}
               <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400 hidden sm:block">
                 MULA Studio
               </span>
