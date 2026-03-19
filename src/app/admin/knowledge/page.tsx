@@ -20,6 +20,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,7 +180,9 @@ export default function KnowledgeBasePage() {
     setIsBulkDeleting(false);
 
     if (error) {
-      alert(`Failed to delete selected items: ${error.message}`);
+      alert(
+        `System Error: Failed to delete selected items. Details: ${error.message}`,
+      );
     } else {
       setKnowledgeData((prev) =>
         prev.filter((item) => !selectedIds.includes(item.id)),
@@ -202,13 +205,16 @@ export default function KnowledgeBasePage() {
     setIsDeleting(false);
 
     if (error) {
-      alert(`Error deleting document: ${error.message}`);
+      alert(
+        `System Error: Failed to delete document. Details: ${error.message}`,
+      );
     } else {
       setKnowledgeData((prev) =>
         prev.filter((item) => item.id !== selectedDoc.id),
       );
       setShowDeleteAlert(false);
       setSelectedDoc(null);
+      setIsDrawerOpen(false);
     }
   };
 
@@ -258,13 +264,18 @@ export default function KnowledgeBasePage() {
       <div className="space-y-6 animate-in fade-in duration-500 font-sans pb-10">
         {/* HEADER PAGE */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-serif">
-              Knowledge Base
-            </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-              Kelola informasi studio yang akan dipelajari oleh MILA AI.
-            </p>
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-3 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-xl shrink-0">
+              <Database className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-serif">
+                Knowledge Base
+              </h1>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                Kelola informasi studio yang akan dipelajari oleh MILA AI.
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">

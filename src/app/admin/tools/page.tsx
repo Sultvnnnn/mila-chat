@@ -43,7 +43,7 @@ export default function ToolsPage() {
     <div className="space-y-6 animate-in fade-in duration-500 font-sans pb-10 max-w-5xl mx-auto">
       {/* HEADER */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-xl">
+        <div className="p-3 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-xl shrink-0">
           <BrainCircuit className="h-6 w-6" />
         </div>
         <div>

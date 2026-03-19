@@ -46,14 +46,18 @@ export default function ConversationsPage() {
   return (
     <div className="flex-1 p-4 md:p-8 pt-6 w-full max-w-full overflow-hidden">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
-            <Database className="h-6 w-6 md:h-8 md:w-8 text-mula" />
-            Data Interaksi
-          </h2>
-          <p className="text-sm md:text-base text-zinc-500 dark:text-zinc-400 mt-1 md:mt-2">
-            Pantau dan analisis log percakapan mentah dari pengguna MILA AI.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-xl shrink-0">
+            <MessageSquare className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-serif">
+              Data Interaksi
+            </h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+              Pantau dan analisis log percakapan mentah dari pengguna MILA AI.
+            </p>
+          </div>
         </div>
         <Button
           onClick={fetchConversations}
@@ -71,8 +75,7 @@ export default function ConversationsPage() {
       <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
         <CardHeader className="p-4 md:p-6 border-b border-zinc-100 dark:border-zinc-800/50">
           <CardTitle className="text-base md:text-lg font-semibold flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-mula" />
-            Dataset Obrolan Terakhir
+            Data Obrolan Terakhir
           </CardTitle>
         </CardHeader>
 
