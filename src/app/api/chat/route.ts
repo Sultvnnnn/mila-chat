@@ -1,9 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import { generateEmbedding } from "@/lib/openai";
-import buildSystemPrompt from "@/lib/prompts/systemPrompt";
+import { getSystemPrompt } from "@/lib/prompts/systemPrompt";
 import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
-import { channel } from "diagnostics_channel";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +32,7 @@ export async function POST(req: Request) {
 
     // detect language
     const isEnglish = isEnglishLanguage(query);
-    const langCode = isEnglish ? "EN" : "ID";
+    const langCode = isEnglish ? "en" : "id";
 
     // generate embedding
     const embedding = await generateEmbedding(query);
@@ -89,7 +88,7 @@ export async function POST(req: Request) {
       ?.map((doc: { content: string }) => `INFO: ${doc.content}`)
       .join("\n\n");
 
-    const systemPrompt = buildSystemPrompt(
+    const systemPrompt = await getSystemPrompt(
       langCode,
       hariIni,
       timeString,

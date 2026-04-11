@@ -67,7 +67,7 @@ export default function ToolsPage() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ketik pertanyaan... (contoh: 'Berapa harga?')"
+              placeholder="contoh: Berapa harga?"
               className="pl-12 h-14 w-full bg-zinc-50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 text-base focus-visible:ring-mula-dark"
             />
           </div>
