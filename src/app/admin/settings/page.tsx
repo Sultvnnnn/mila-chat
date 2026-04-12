@@ -352,9 +352,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex-1 p-4 md:p-8 pt-6 max-w-5xl mx-auto relative overflow-x-hidden">
-      {/* ========================================= */}
-      {/* TAMPILAN 1: HALAMAN DAFTAR MENU UTAMA     */}
-      {/* ========================================= */}
+      {/* HALAMAN DAFTAR MENU UTAMA     */}
       {activeView === "menu" && (
         <div className="space-y-6 animate-in fade-in duration-300">
           <div>
@@ -427,19 +425,10 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ========================================= */}
-      {/* TAMPILAN 2: HALAMAN DETAIL & BREADCRUMB   */}
-      {/* ========================================= */}
+      {/* HALAMAN DETAIL & BREADCRUMB */}
       {activeView !== "menu" && (
         <div className="space-y-6 animate-in slide-in-from-right-8 fade-in duration-300">
           <nav className="flex items-center text-sm text-zinc-500 dark:text-zinc-400 font-medium mb-6">
-            <Link
-              href="/admin"
-              className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-            >
-              Admin
-            </Link>
-            <span className="mx-2 text-zinc-300 dark:text-zinc-700">/</span>
             <button
               onClick={() => setActiveView("menu")}
               className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
@@ -469,12 +458,9 @@ export default function SettingsPage() {
                     variant="outline"
                     onClick={handleReset}
                     disabled={isResetting || isLoading}
-                    className="text-red-600 hover:bg-red-50"
+                    className="w-full h-12 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 border-zinc-200 dark:border-zinc-800 transition-colors"
                   >
-                    <RefreshCcw
-                      className={`h-4 w-4 mr-2 ${isResetting ? "animate-spin" : ""}`}
-                    />{" "}
-                    Reset Default
+                    Reset ke Default
                   </Button>
                   <Button
                     onClick={handleSave}
@@ -487,44 +473,52 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <Card className="bg-white dark:bg-zinc-900 shadow-sm overflow-hidden border-zinc-200">
-                <div className="flex border-b border-zinc-200 bg-zinc-50/50">
+              <Card className="bg-white dark:bg-zinc-900 shadow-sm overflow-hidden border-zinc-200 dark:border-zinc-800">
+                <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50">
                   <button
                     onClick={() => setActiveLang("id")}
-                    className={`flex-1 py-4 text-sm font-bold flex justify-center ${activeLang === "id" ? "bg-white text-mula-dark border-b-2 border-mula-dark" : "text-zinc-500"}`}
+                    className={`flex-1 py-4 text-sm font-bold flex justify-center transition-colors ${
+                      activeLang === "id"
+                        ? "bg-white dark:bg-zinc-900 text-mula-dark dark:text-mula border-b-2 border-mula-dark dark:border-mula"
+                        : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
+                    }`}
                   >
                     Bahasa Indonesia
                   </button>
                   <button
                     onClick={() => setActiveLang("en")}
-                    className={`flex-1 py-4 text-sm font-bold flex justify-center ${activeLang === "en" ? "bg-white text-mula-dark border-b-2 border-mula-dark" : "text-zinc-500"}`}
+                    className={`flex-1 py-4 text-sm font-bold flex justify-center transition-colors ${
+                      activeLang === "en"
+                        ? "bg-white dark:bg-zinc-900 text-mula-dark dark:text-mula border-b-2 border-mula-dark dark:border-mula"
+                        : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
+                    }`}
                   >
                     English
                   </button>
                 </div>
-                <CardContent className="p-4 md:p-6 bg-zinc-50/30">
+                <CardContent className="p-4 md:p-6 bg-zinc-50/30 dark:bg-zinc-950/30">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {configFields.map((field) => (
                       <div
                         key={field}
                         onClick={() => setEditingField(field)}
-                        className="bg-white border border-zinc-200 p-5 rounded-xl cursor-pointer hover:border-mula hover:shadow-sm flex flex-col h-full"
+                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-xl cursor-pointer hover:border-mula dark:hover:border-mula hover:shadow-sm flex flex-col h-full transition-colors group"
                       >
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h3 className="font-bold text-sm text-zinc-900">
+                            <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
                               {fieldLabels[field].title}
                             </h3>
-                            <p className="text-[11px] text-zinc-500">
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                               {fieldLabels[field].desc}
                             </p>
                           </div>
-                          <div className="p-1.5 bg-zinc-50 rounded-full shrink-0">
-                            <Edit3 className="h-4 w-4 text-mula-dark" />
+                          <div className="p-1.5 bg-zinc-50 dark:bg-zinc-800 rounded-full shrink-0 group-hover:bg-mula/20 transition-colors">
+                            <Edit3 className="h-4 w-4 text-mula-dark dark:text-mula" />
                           </div>
                         </div>
-                        <div className="mt-2 pt-3 border-t border-zinc-100">
-                          <p className="text-xs text-zinc-600 line-clamp-3 whitespace-pre-wrap">
+                        <div className="mt-2 pt-3 border-t border-zinc-100 dark:border-zinc-800/50">
+                          <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-3 whitespace-pre-wrap">
                             {activeConfig[field]}
                           </p>
                         </div>
@@ -671,27 +665,27 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* DRAWER UNTUK EDIT PERSONA */}
+      {/* DRAWER EDIT PERSONA */}
       <Drawer
         open={!!editingField}
         onOpenChange={(open) => !open && setEditingField(null)}
       >
-        <DrawerContent className="bg-white border-zinc-200 outline-none flex flex-col h-[95dvh] sm:h-[80vh] sm:max-w-2xl sm:mx-auto w-full">
+        <DrawerContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 outline-none flex flex-col h-[95dvh] sm:h-[80vh] sm:max-w-2xl sm:mx-auto w-full">
           <div className="w-full flex flex-col h-full">
             <DrawerHeader className="text-left shrink-0 pb-2">
-              <DrawerTitle className="text-zinc-900 text-xl flex items-center justify-between">
+              <DrawerTitle className="text-zinc-900 dark:text-zinc-100 text-xl flex items-center justify-between">
                 {editingField ? fieldLabels[editingField].title : ""}
                 <DrawerClose asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-zinc-100"
+                    className="h-8 w-8 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 </DrawerClose>
               </DrawerTitle>
-              <DrawerDescription className="text-zinc-500">
+              <DrawerDescription className="text-zinc-500 dark:text-zinc-400">
                 {editingField ? fieldLabels[editingField].desc : ""}
               </DrawerDescription>
             </DrawerHeader>
@@ -702,7 +696,7 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     handleConfigChange(editingField, e.target.value)
                   }
-                  className="flex-1 w-full h-full p-4 text-base bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-mula-dark resize-none overflow-y-auto leading-relaxed"
+                  className="flex-1 w-full h-full p-4 text-base bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mula-dark dark:focus:ring-mula resize-none overflow-y-auto leading-relaxed shadow-inner"
                 />
               )}
             </div>
