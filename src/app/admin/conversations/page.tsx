@@ -2,24 +2,52 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, MessageSquare, Clock, Database, Eye } from "lucide-react";
+import {
+  RefreshCcw,
+  MessageSquare,
+  Clock,
+  Eye,
+  Trash2,
+  AlertTriangle,
+} from "lucide-react";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ConversationsPage() {
+  const { toast } = useToast();
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [conversations, setConversations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedChat, setSelectedChat] = useState<any>(null);
+
+  // state modal
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    type: "single" | "bulk";
+    chatId?: string | null;
+  }>({ isOpen: false, type: "single", chatId: null });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchConversations = async () => {
     setIsLoading(true);
@@ -33,6 +61,11 @@ export default function ConversationsPage() {
       console.error(
         `Database Error: Failed to fetch conversations data. Details: ${error.message}`,
       );
+      toast({
+        title: "Error",
+        description: "Gagal memuat data percakapan.",
+        variant: "destructive",
+      });
     } else if (data) {
       setConversations(data);
     }
@@ -42,6 +75,60 @@ export default function ConversationsPage() {
   useEffect(() => {
     fetchConversations();
   }, []);
+
+  // open modal
+  const confirmDeleteSingle = (id: string) => {
+    setDeleteModal({ isOpen: true, type: "single", chatId: id });
+  };
+
+  const confirmDeleteAll = () => {
+    setDeleteModal({ isOpen: true, type: "bulk", chatId: null });
+  };
+
+  // execute delete
+  const executeDelete = async () => {
+    setIsDeleting(true);
+    try {
+      if (deleteModal.type === "bulk") {
+        const { error } = await supabase
+          .from("conversations")
+          .delete()
+          .neq("id", "0");
+        if (error) throw error;
+
+        toast({
+          title: "🧹 Bersih Total",
+          description: "Semua riwayat percakapan telah dimusnahkan.",
+        });
+        setConversations([]);
+        setSelectedChat(null);
+      } else if (deleteModal.type === "single" && deleteModal.chatId) {
+        const { error } = await supabase
+          .from("conversations")
+          .delete()
+          .eq("id", deleteModal.chatId);
+        if (error) throw error;
+
+        toast({
+          title: "🗑️ Terhapus",
+          description: "Percakapan berhasil dihapus.",
+        });
+        setConversations((prev) =>
+          prev.filter((chat) => chat.id !== deleteModal.chatId),
+        );
+        if (selectedChat?.id === deleteModal.chatId) setSelectedChat(null);
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Gagal Hapus",
+        description: error.message,
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteModal({ isOpen: false, type: "single", chatId: null });
+    }
+  };
 
   return (
     <div className="flex-1 p-4 md:p-8 pt-6 w-full max-w-full overflow-hidden">
@@ -55,21 +142,33 @@ export default function ConversationsPage() {
               Data Interaksi
             </h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-              Pantau dan analisis log percakapan mentah dari pengguna MILA AI.
+              Pantau dan bersihkan log percakapan dari pengguna MILA AI.
             </p>
           </div>
         </div>
-        <Button
-          onClick={fetchConversations}
-          disabled={isLoading}
-          variant="outline"
-          className="w-full sm:w-auto"
-        >
-          <RefreshCcw
-            className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
-          />
-          Segarkan Data
-        </Button>
+
+        {/* TOMBOL AKSI */}
+        <div className="flex w-full sm:w-auto gap-2">
+          <Button
+            onClick={confirmDeleteAll}
+            disabled={isLoading || conversations.length === 0}
+            variant="outline"
+            className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/30 dark:text-red-500 dark:hover:bg-red-950/40"
+          >
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            Kosongkan
+          </Button>
+          <Button
+            onClick={fetchConversations}
+            disabled={isLoading}
+            className="flex-1 sm:flex-none bg-zinc-900 hover:bg-mula-dark text-white"
+          >
+            <RefreshCcw
+              className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+            />
+            Segarkan
+          </Button>
+        </div>
       </div>
 
       <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
@@ -106,7 +205,7 @@ export default function ConversationsPage() {
                   key={chat.id}
                   className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                 >
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1.5 overflow-hidden">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-[10px] text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
                         {chat.id.substring(0, 6)}...
@@ -124,14 +223,24 @@ export default function ConversationsPage() {
                     </div>
                   </div>
 
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    onClick={() => setSelectedChat(chat)}
-                    className="bg-mula/20 text-mula-dark hover:bg-mula/40 dark:bg-mula/10 dark:text-mula dark:hover:bg-mula/20 shadow-none h-8 w-8 rounded-full flex-shrink-0 ml-2"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1.5 ml-2">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={() => setSelectedChat(chat)}
+                      className="bg-mula/20 text-mula-dark hover:bg-mula/40 dark:bg-mula/10 dark:text-mula dark:hover:bg-mula/20 shadow-none h-8 w-8 rounded-full flex-shrink-0"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => confirmDeleteSingle(chat.id)}
+                      className="bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/50 shadow-none h-8 w-8 rounded-full flex-shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))
             )}
@@ -151,7 +260,6 @@ export default function ConversationsPage() {
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {isLoading ? (
-                  // SKELETON DESKTOP
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i}>
                       <td className="px-4 py-4">
@@ -164,7 +272,7 @@ export default function ConversationsPage() {
                         <Skeleton className="h-4 w-32" />
                       </td>
                       <td className="px-4 py-4">
-                        <Skeleton className="h-8 w-20 ml-auto" />
+                        <Skeleton className="h-8 w-32 ml-auto" />
                       </td>
                     </tr>
                   ))
@@ -193,15 +301,26 @@ export default function ConversationsPage() {
                         {new Date(chat.updated_at).toLocaleString("id-ID")}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setSelectedChat(chat)}
-                          className="bg-mula/20 text-mula-dark hover:bg-mula/40 dark:bg-mula/10 dark:text-mula dark:hover:bg-mula/20 shadow-none h-8 px-3 text-xs"
-                        >
-                          <Eye className="h-3.5 w-3.5 mr-1.5" />
-                          Lihat
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setSelectedChat(chat)}
+                            className="bg-mula/20 text-mula-dark hover:bg-mula/40 dark:bg-mula/10 dark:text-mula dark:hover:bg-mula/20 shadow-none h-8 px-3 text-xs"
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1.5" />
+                            Lihat
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => confirmDeleteSingle(chat.id)}
+                            className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/30 shadow-none h-8 px-3 text-xs"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                            Hapus
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -235,21 +354,13 @@ export default function ConversationsPage() {
             {selectedChat?.messages?.map((msg: any, index: number) => (
               <div
                 key={index}
-                className={`flex flex-col max-w-[90%] md:max-w-[85%] animate-in fade-in slide-in-from-bottom-2 ${
-                  msg.role === "user"
-                    ? "ml-auto items-end"
-                    : "mr-auto items-start"
-                }`}
+                className={`flex flex-col max-w-[90%] md:max-w-[85%] animate-in fade-in slide-in-from-bottom-2 ${msg.role === "user" ? "ml-auto items-end" : "mr-auto items-start"}`}
               >
                 <span className="text-[10px] text-zinc-400 mb-1.5 ml-1 font-semibold tracking-wider uppercase">
                   {msg.role === "user" ? "Pengguna" : "MILA AI"}
                 </span>
                 <div
-                  className={`p-3 md:p-4 text-sm leading-relaxed whitespace-pre-wrap ${
-                    msg.role === "user"
-                      ? "bg-mula text-zinc-900 rounded-2xl rounded-tr-sm shadow-sm font-medium"
-                      : "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800 rounded-2xl rounded-tl-sm shadow-sm"
-                  }`}
+                  className={`p-3 md:p-4 text-sm leading-relaxed whitespace-pre-wrap ${msg.role === "user" ? "bg-mula text-zinc-900 rounded-2xl rounded-tr-sm shadow-sm font-medium" : "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800 rounded-2xl rounded-tl-sm shadow-sm"}`}
                 >
                   {msg.content ||
                     (msg.parts && msg.parts.map((p: any) => p.text).join(""))}
@@ -260,6 +371,56 @@ export default function ConversationsPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* ALERT DIALOG DELETE */}
+      <AlertDialog
+        open={deleteModal.isOpen}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setDeleteModal({ isOpen: false, type: "single" });
+          }
+        }}
+      >
+        <AlertDialogContent className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-[99999]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-zinc-900 dark:text-zinc-100">
+              {deleteModal.type === "bulk"
+                ? "Kosongkan Semua Obrolan?"
+                : "Hapus Percakapan Ini?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500 dark:text-zinc-400">
+              {deleteModal.type === "bulk"
+                ? "Tindakan ini tidak bisa dibatalkan. Seluruh riwayat percakapan MILA akan dihapus secara permanen dari database."
+                : "Tindakan ini tidak bisa dibatalkan. Percakapan ini akan dihapus secara permanen."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="bg-zinc-100 hover:bg-zinc-200 text-zinc-900 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-100 border-none transition-colors mt-2 sm:mt-0"
+            >
+              Batal
+            </AlertDialogCancel>
+            <Button
+              onClick={(e) => {
+                e.preventDefault();
+                executeDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white shadow-sm transition-colors"
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              {isDeleting
+                ? "Menghapus..."
+                : deleteModal.type === "bulk"
+                  ? "Ya, Hapus Semua"
+                  : "Ya, Hapus"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
