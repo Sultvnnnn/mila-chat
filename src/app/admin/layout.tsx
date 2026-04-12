@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
+import { ShortcutListener } from "@/components/ShortcutListener";
 
 // navigation items
 // prettier-ignore
@@ -55,6 +56,17 @@ export default function AdminLayout({
   useEffect(() => {
     setIsMobileOpen(false);
   }, [pathname]);
+
+  // shortcut listener for sidebar
+  useEffect(() => {
+    const handleToggleSidebar = () => {
+      setIsCollapsed((prev) => !prev);
+    };
+
+    window.addEventListener("toggle-sidebar-event", handleToggleSidebar);
+    // prettier-ignore
+    return () => window.removeEventListener("toggle-sidebar-event", handleToggleSidebar);
+  }, []);
 
   const pathLast = pathname.split("/").pop();
   const pageTitle =
@@ -243,6 +255,8 @@ export default function AdminLayout({
             <div className="mx-auto max-w-6xl">{children}</div>
           </div>
         </main>
+
+        <ShortcutListener />
       </div>
     </>
   );

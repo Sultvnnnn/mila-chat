@@ -93,6 +93,8 @@ const defaultShortcuts: ShortcutDef[] = [
   { id: "clear_chat", label: "Bersihkan Obrolan", key: "Escape" },
   { id: "open_knowledge", label: "Buka Knowledge Base", key: "Ctrl + K" },
   { id: "open_settings", label: "Buka Pengaturan", key: "Ctrl + ," },
+  { id: "toggle_sidebar", label: "Buka/Tutup Sidebar", key: "Ctrl + B" },
+  { id: "toggle_theme", label: "Ganti Tema (Dark/Light)", key: "Alt + T" },
 ];
 
 export default function SettingsPage() {
