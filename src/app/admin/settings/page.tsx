@@ -89,7 +89,9 @@ const configFields = Object.keys(fieldLabels) as Array<keyof AIConfig>;
 // Default Shortcuts Data
 type ShortcutDef = { id: string; label: string; key: string };
 const defaultShortcuts: ShortcutDef[] = [
-  { id: "focus_chat", label: "Fokus Input Chat", key: "/" },
+  { id: "open_dashboard", label: "Buka Dashboard Utama", key: "/" },
+  { id: "open_conversations", label: "Buka Conversations", key: "Ctrl + M" },
+  { id: "focus_chat", label: "Fokus Input Chat", key: "C" },
   { id: "clear_chat", label: "Bersihkan Obrolan", key: "Escape" },
   { id: "open_knowledge", label: "Buka Knowledge Base", key: "Ctrl + K" },
   { id: "open_settings", label: "Buka Pengaturan", key: "Ctrl + ," },
@@ -116,6 +118,7 @@ export default function SettingsPage() {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [shortcuts, setShortcuts] = useState<ShortcutDef[]>(defaultShortcuts);
   const [recordingId, setRecordingId] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -172,13 +175,19 @@ export default function SettingsPage() {
 
   // EVENT LISTENER UNTUK MEREKAM SHORTCUT KEYBOARD
   useEffect(() => {
-    if (!recordingId) return;
+    if (!recordingId) {
+      document.body.removeAttribute("data-recording-shortcut");
+      return;
+    }
+
+    document.body.setAttribute("data-recording-shortcut", "true");
 
     const handleKeyDown = (e: KeyboardEvent) => {
       e.preventDefault();
+      e.stopPropagation();
 
       let keyName = e.key === " " ? "Space" : e.key;
-      // Jangan simpan kalau user cuma pencet tombol modifier doang
+
       if (
         keyName === "Control" ||
         keyName === "Alt" ||
@@ -197,11 +206,15 @@ export default function SettingsPage() {
       setShortcuts((prev) =>
         prev.map((s) => (s.id === recordingId ? { ...s, key: keyLabel } : s)),
       );
-      setRecordingId(null); // Stop recording setelah dapet tombolnya
+      setRecordingId(null);
+      setHasUnsavedChanges(true);
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.removeAttribute("data-recording-shortcut");
+    };
   }, [recordingId]);
 
   // SIMPAN SHORTCUTS KE LOCAL STORAGE
@@ -211,6 +224,7 @@ export default function SettingsPage() {
       title: "Shortcuts Saved",
       description: "Keyboard preferences have been saved to this browser.",
     });
+    setHasUnsavedChanges(false);
   };
 
   // RESET SHORTCUTS KE DEFAULT
@@ -628,9 +642,20 @@ export default function SettingsPage() {
                   </Button>
                   <Button
                     onClick={handleSaveShortcuts}
-                    className="bg-zinc-900 hover:bg-mula-dark text-white"
+                    className={`transition-colors duration-200 ${
+                      hasUnsavedChanges
+                        ? "bg-amber-500 hover:bg-amber-600 text-amber-950 font-semibold border border-amber-600/20"
+                        : "bg-zinc-900 hover:bg-mula-dark text-white"
+                    }`}
                   >
-                    <Save className="h-4 w-4 mr-2" /> Simpan
+                    {hasUnsavedChanges && (
+                      <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border-2 border-white dark:border-zinc-900"></span>
+                      </span>
+                    )}
+                    <Save className="h-4 w-4 mr-2" />
+                    {hasUnsavedChanges ? "Simpan Perubahan" : "Simpan"}
                   </Button>
                 </div>
               </div>

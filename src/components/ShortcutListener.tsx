@@ -22,7 +22,6 @@ export function ShortcutListener() {
       // button shortcuts
       let keyName = e.key === " " ? "Space" : e.key;
       let keyLabel = keyName.length === 1 ? keyName.toUpperCase() : keyName;
-
       if (e.ctrlKey || e.metaKey) keyLabel = `Ctrl + ${keyLabel}`;
       if (e.altKey) keyLabel = `Alt + ${keyLabel}`;
       if (e.shiftKey && keyName.length === 1) keyLabel = `Shift + ${keyLabel}`;
@@ -68,11 +67,29 @@ export function ShortcutListener() {
 
       // MAIN LOGIC
       switch (matchedShortcut.id) {
+        case "open_dashboard":
+          e.preventDefault();
+          router.push("/admin");
+          toast({
+            title: "🏠 Ke Dashboard",
+            description: "Kembali ke halaman utama.",
+          });
+          break;
+
+        case "open_conversations":
+          e.preventDefault();
+          router.push("/admin/conversations");
+          toast({
+            title: "💬 Conversations",
+            description: "Membuka riwayat obrolan.",
+          });
+          break;
+
         case "open_settings":
           e.preventDefault();
           router.push("/admin/settings");
           toast({
-            title: "⚡ Shortcut Aktif",
+            title: "⚙️ Settings",
             description: "Membuka halaman Pengaturan.",
           });
           break;
@@ -81,7 +98,7 @@ export function ShortcutListener() {
           e.preventDefault();
           router.push("/admin/knowledge");
           toast({
-            title: "⚡ Shortcut Aktif",
+            title: "📚 Knowledge",
             description: "Membuka Knowledge Base.",
           });
           break;
@@ -91,10 +108,10 @@ export function ShortcutListener() {
           const chatInput = document.getElementById("chat-input");
           if (chatInput) {
             chatInput.focus();
-            toast({ description: "Fokus pada kolom input obrolan." });
+            toast({ description: "Input chat aktif." });
           } else {
             router.push("/admin");
-            toast({ description: "Menuju halaman Dashboard Obrolan..." });
+            toast({ description: "Menuju chat dashboard..." });
           }
           break;
 
