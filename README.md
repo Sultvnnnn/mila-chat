@@ -127,13 +127,4 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ---
 
-## 📅 Roadmap
-
-- [x] ~~Week 1: Project Setup & Database Schema~~
-- [x] ~~Week 2: Backend RAG Logic, Seeding, & Persona Tuning~~
-- [x] ~~Week 3: Frontend UI (Chat Bubble, Animations, Responsive Design)~~
-- [ ] Week 4: Deployment & Final Polish
-
----
-
 Created with ❤️ by Sultvnnnn.
