@@ -106,9 +106,8 @@ export async function POST(req: Request) {
 
     if (escalation) {
       const escalationMsg = isEnglish
-        ? "Of course! I'll connect you with our team right away. Please wait a moment — our staff will reach out to you shortly. 🙏"
-        : "Baik Ka! Mila sambungkan ke tim kami ya. Mohon tunggu sebentar, staff kami akan segera menghubungi Kakak. 🙏";
-
+        ? "I am transferring you to our human staff. ⚠️ Please do not clear this chat session or close your browser. Wait a moment, and our admin will reply to your message directly in this chat window. 🙏"
+        : "Mila sedang mengalihkan Kakak ke staff/admin kami. ⚠️ Mohon JANGAN menghapus riwayat chat ini (Clear Session) atau menutup browser ya. Harap bersabar menunggu sebentar, admin kami akan segera membalas pesan Kakak langsung di jendela chat ini. 🙏";
       // Upsert conversation dulu supaya ada foreign key-nya
       const finalMessages = [
         ...messages,
