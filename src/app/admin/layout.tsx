@@ -14,6 +14,7 @@ import {
   PanelLeft,
   LogOut,
   RefreshCcw,
+  MessageSquareWarning,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const sidebarLinks = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Conversations", href: "/admin/conversations", icon: MessageSquare },
     { name: "Knowledge Base", href: "/admin/knowledge", icon: Database },
+    { name: "Escalations", href: "/admin/escalations",icon: MessageSquareWarning },
     { name: "Tools & Functions", href: "/admin/tools", icon: Wrench },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ];
