@@ -13,10 +13,12 @@ import {
   MapPin,
   Dumbbell,
   RefreshCcw,
+  Headphones,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
 import TextareaAutosize from "react-textarea-autosize";
+import { useToast } from "@/hooks/use-toast";
 import { AnimatedGreeting } from "@/components/AnimatedGreeting";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -36,54 +38,135 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Loading from "./loading";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 export default function Home() {
+  const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
   const [isMounted, setIsMounted] = useState(false);
   const [input, setInput] = useState("");
-  const [sessionId, setSessionId] = useState<string>("");
   const [showResetAlert, setShowResetAlert] = useState(false);
+  const [isEscalated, setIsEscalated] = useState(false);
 
-  //? hook useChat
+  const [sessionId, setSessionId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      let id = localStorage.getItem("mila_session_id");
+      if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem("mila_session_id", id);
+      }
+      return id;
+    }
+    return "";
+  });
+
+  //? Hook useChat
   const { messages, setMessages, sendMessage, status } = useChat({
     id: sessionId,
     transport: new DefaultChatTransport({
-      api: "/api/chat",
+      api: `/api/chat?sessionId=${sessionId}`,
     }),
   });
 
-  //? check session ID dan load riwayat obrolan
+  //? Cek riwayat dan status eskalasi awal
   useEffect(() => {
-    const initializeChat = async () => {
-      let currentSessionId = localStorage.getItem("mila_session_id");
+    const loadData = async () => {
+      if (!sessionId) return;
 
-      if (currentSessionId) {
-        setSessionId(currentSessionId);
-        const { data, error } = await supabase
-          .from("conversations")
-          .select("messages")
-          .eq("id", currentSessionId)
-          .single();
+      const { data: convData } = await supabase
+        .from("conversations")
+        .select("messages")
+        .eq("id", sessionId)
+        .single();
 
-        if (error) {
-          console.error(
-            `Database Error: Failed to retrieve conversation history for session ${currentSessionId}. Details: ${error.message}`,
-          );
-        }
-
-        if (data && data.messages) {
-          setMessages(data.messages);
-        }
-      } else {
-        currentSessionId = crypto.randomUUID();
-        localStorage.setItem("mila_session_id", currentSessionId);
-        setSessionId(currentSessionId);
+      if (convData && convData.messages) {
+        setMessages(convData.messages);
       }
-    };
 
-    initializeChat();
-  }, [setMessages]);
+      const { data: escData } = await supabase
+        .from("escalations")
+        .select("status")
+        .eq("conversation_id", sessionId)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      setIsEscalated(!!escData);
+    };
+    loadData();
+  }, [sessionId, setMessages]);
+
+  //? Supabase realtime listeners for realtime chat
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const convChannel = supabase
+      .channel(`realtime-messages-${sessionId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "conversations" },
+        (payload) => {
+          const newPayload = payload.new as any;
+
+          if (newPayload && newPayload.id === sessionId) {
+            const updatedMessages = newPayload.messages;
+            if (updatedMessages?.length > 0) {
+              const lastMsg = updatedMessages[updatedMessages.length - 1];
+              if (lastMsg?.role !== "user") {
+                setMessages(updatedMessages);
+              }
+            }
+          }
+        },
+      )
+      .subscribe();
+
+    const escChannel = supabase
+      .channel(`realtime-esc-${sessionId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "escalations" },
+        (payload) => {
+          const newPayload = payload.new as any;
+          const oldPayload = payload.old as any;
+
+          if (
+            newPayload?.conversation_id !== sessionId &&
+            oldPayload?.conversation_id !== sessionId
+          )
+            return;
+
+          if (payload.eventType === "INSERT") {
+            setIsEscalated(true);
+            toast({
+              title: "Sesi Live Chat Dimulai",
+              description: "Admin kami telah menerima permintaan bantuan Anda.",
+            });
+          }
+
+          if (payload.eventType === "UPDATE") {
+            const newStatus = newPayload.status;
+            if (newStatus === "resolved") {
+              setIsEscalated(false);
+              toast({
+                title: "Sesi Live Chat Berakhir",
+                description:
+                  "Terima kasih. Sekarang Anda kembali terhubung dengan MILA.",
+              });
+            } else if (newStatus === "pending") {
+              setIsEscalated(true);
+            }
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(convChannel);
+      supabase.removeChannel(escChannel);
+    };
+  }, [sessionId, setMessages, toast]);
 
   const isLoading = status === "submitted" || status === "streaming";
 
@@ -130,6 +213,7 @@ export default function Home() {
     localStorage.setItem("mila_session_id", newSessionId);
     setSessionId(newSessionId);
     setMessages([]);
+    setIsEscalated(false);
   };
 
   return (
@@ -192,6 +276,27 @@ export default function Home() {
         </header>
         {/* HEADER END */}
 
+        {/* LIVE CHAT BANNER START */}
+        <AnimatePresence>
+          {isEscalated && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-mula/20 border-b border-mula/30 py-2 px-4 flex items-center justify-center gap-2 z-10"
+            >
+              <div className="flex items-center gap-2 bg-mula text-zinc-900 px-3 py-1 rounded-full text-[10px] font-bold tracking-tight shadow-sm">
+                <Headphones className="h-3 w-3 animate-pulse" />
+                SESI LIVE CHAT AKTIF
+              </div>
+              <span className="text-[10px] font-medium text-muted-foreground italic">
+                Staff kami akan membalas pesan Anda.
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {/* LIVE CHAT BANNER END */}
+
         {/* CHAT AREA START */}
         <div
           id="chat-scroll-container"
@@ -252,97 +357,153 @@ export default function Home() {
           ) : (
             <div className="flex flex-col gap-6 py-6 pb-40">
               <AnimatePresence initial={false}>
-                {messages.map((m: UIMessage, index: number) => {
-                  const isLatest = index === messages.length - 1;
+                {messages
+                  .filter((msg: any) => {
+                    const textContent =
+                      msg.content ||
+                      (msg.parts
+                        ? msg.parts
+                            .filter((p: any) => p.type === "text")
+                            .map((p: any) => p.text)
+                            .join("")
+                        : "");
+                    return textContent.trim() !== "";
+                  })
+                  .map((m: UIMessage, index: number, filteredArray) => {
+                    const isLatest = index === filteredArray.length - 1;
 
-                  return (
-                    <motion.div
-                      key={m.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{
-                        opacity: 0,
-                        scale: 0.95,
-                        y: 10,
-                        transition: { duration: 0.3 },
-                      }}
-                      className={`flex gap-3 ${
-                        m.role === "user" ? "justify-end" : "justify-start"
-                      }`}
-                    >
-                      <div className={`flex flex-col gap-1 max-w-[85%]`}>
-                        <div
-                          className={`text-sm leading-relaxed ${
-                            m.role === "user"
-                              ? "bg-mula text-zinc-900 px-4 py-2 rounded-2xl rounded-tr-sm shadow-sm"
-                              : "text-foreground pl-0 py-0"
-                          }`}
-                        >
-                          {(() => {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            const msgAny = m as any;
+                    return (
+                      <motion.div
+                        key={m.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{
+                          opacity: 0,
+                          scale: 0.95,
+                          y: 10,
+                          transition: { duration: 0.3 },
+                        }}
+                        className={`flex gap-3 ${
+                          m.role === "user" ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        <div className={`flex flex-col gap-1 max-w-[85%]`}>
+                          <div
+                            className={`text-sm leading-relaxed ${
+                              m.role === "user"
+                                ? "bg-mula text-zinc-900 px-4 py-2 rounded-2xl rounded-tr-sm shadow-sm"
+                                : "text-foreground pl-0 py-0"
+                            }`}
+                          >
+                            {(() => {
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              const msgAny = m as any;
 
-                            const textContent =
-                              msgAny.content ||
-                              (msgAny.parts
-                                ? msgAny.parts
-                                    .filter((p: any) => p.type === "text")
-                                    .map((p: any) => p.text)
-                                    .join("")
-                                : "");
+                              const textContent =
+                                msgAny.content ||
+                                (msgAny.parts
+                                  ? msgAny.parts
+                                      .filter((p: any) => p.type === "text")
+                                      .map((p: any) => p.text)
+                                      .join("")
+                                  : "");
 
-                            return m.role === "user" ? (
-                              <div className="whitespace-pre-wrap font-sans">
-                                {textContent}
-                              </div>
-                            ) : (
-                              <div className="flex flex-col items-start gap-1">
-                                <div className="font-sans text-sm">
-                                  <ReactMarkdown
-                                    components={{
-                                      ul: ({ ...props }) => (
-                                        <ul
-                                          className="list-disc pl-5 my-2 space-y-1"
-                                          {...props}
-                                        />
-                                      ),
-                                      ol: ({ ...props }) => (
-                                        <ol
-                                          className="list-decimal pl-5 my-2 space-y-1"
-                                          {...props}
-                                        />
-                                      ),
-                                      li: ({ ...props }) => (
-                                        <li
-                                          className="leading-relaxed"
-                                          {...props}
-                                        />
-                                      ),
-                                      p: ({ ...props }) => (
-                                        <p
-                                          className="mb-2 last:mb-0"
-                                          {...props}
-                                        />
-                                      ),
-                                    }}
-                                  >
-                                    {textContent}
-                                  </ReactMarkdown>
+                              return m.role === "user" ? (
+                                <div className="whitespace-pre-wrap font-sans">
+                                  {textContent}
                                 </div>
-
-                                {isLatest && m.role === "assistant" && (
-                                  <div className="flex items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2">
-                                    <Sparkles className="h-4 w-4 text-mula-dark animate-pulse" />
+                              ) : msgAny.isAdmin ? (
+                                // bubble chat admin
+                                <div className="flex flex-col items-start gap-1 max-w-[85%] mt-2">
+                                  <div className="bg-mula text-zinc-900 px-4 py-2.5 rounded-2xl rounded-tl-sm border border-mula-dark/20 shadow-sm font-sans text-sm w-fit relative">
+                                    <div className="font-sans">
+                                      <ReactMarkdown
+                                        components={{
+                                          ul: ({ ...props }) => (
+                                            <ul
+                                              className="list-disc pl-5 my-1 space-y-1"
+                                              {...props}
+                                            />
+                                          ),
+                                          ol: ({ ...props }) => (
+                                            <ol
+                                              className="list-decimal pl-5 my-1 space-y-1"
+                                              {...props}
+                                            />
+                                          ),
+                                          li: ({ ...props }) => (
+                                            <li
+                                              className="leading-relaxed"
+                                              {...props}
+                                            />
+                                          ),
+                                          p: ({ ...props }) => (
+                                            <p
+                                              className="mb-1 last:mb-0"
+                                              {...props}
+                                            />
+                                          ),
+                                        }}
+                                      >
+                                        {textContent}
+                                      </ReactMarkdown>
+                                    </div>
+                                    <div className="mt-1.5 pt-1.5 border-t border-zinc-900/10 flex items-center justify-between gap-4">
+                                      <span className="text-[9px] font-black uppercase tracking-widest opacity-50">
+                                        Staff Support
+                                      </span>
+                                    </div>
                                   </div>
-                                )}
-                              </div>
-                            );
-                          })()}
+                                </div>
+                              ) : (
+                                // bubble chat mila
+                                <div className="flex flex-col items-start gap-1">
+                                  <div className="font-sans text-sm">
+                                    <ReactMarkdown
+                                      components={{
+                                        ul: ({ ...props }) => (
+                                          <ul
+                                            className="list-disc pl-5 my-2 space-y-1"
+                                            {...props}
+                                          />
+                                        ),
+                                        ol: ({ ...props }) => (
+                                          <ol
+                                            className="list-decimal pl-5 my-2 space-y-1"
+                                            {...props}
+                                          />
+                                        ),
+                                        li: ({ ...props }) => (
+                                          <li
+                                            className="leading-relaxed"
+                                            {...props}
+                                          />
+                                        ),
+                                        p: ({ ...props }) => (
+                                          <p
+                                            className="mb-2 last:mb-0"
+                                            {...props}
+                                          />
+                                        ),
+                                      }}
+                                    >
+                                      {textContent}
+                                    </ReactMarkdown>
+                                  </div>
+
+                                  {isLatest && m.role === "assistant" && (
+                                    <div className="flex items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2">
+                                      <Sparkles className="h-4 w-4 text-mula-dark animate-pulse" />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                      </motion.div>
+                    );
+                  })}
               </AnimatePresence>
 
               {isLoading && messages[messages.length - 1]?.role === "user" && (

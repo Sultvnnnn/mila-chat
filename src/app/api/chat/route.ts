@@ -14,7 +14,7 @@ const isEnglishLanguage = (text: string): boolean => {
   return englishPattern.test(text);
 };
 
-// ESCALATION: KEYWORD FAST-PATH
+// ESCALATION KEYWORD
 const ESCALATION_KEYWORDS_ID = [
   "bicara dengan manusia",
   "hubungi admin",
@@ -54,7 +54,7 @@ async function checkEscalationWithAI(message: string): Promise<boolean> {
   try {
     const client = new Anthropic();
     const response = await client.messages.create({
-      model: "claude-3-haiku-20240307",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 5,
       system: `You are a binary intent classifier. Reply ONLY with "YES" or "NO".
 Does this message indicate the user wants to speak with a human staff/agent/admin instead of an AI chatbot?`,
@@ -85,7 +85,11 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { messages, id: conversationId } = body;
 
-    const chatId = conversationId || crypto.randomUUID();
+    // Tarik Session ID langsung dari URL
+    const url = new URL(req.url);
+    const sessionIdQuery = url.searchParams.get("sessionId");
+
+    const chatId = sessionIdQuery || conversationId || crypto.randomUUID();
 
     const coreMessages = messages.map((msg: any) => ({
       role: msg.role,
@@ -101,13 +105,62 @@ export async function POST(req: Request) {
     const isEnglish = isEnglishLanguage(query);
     const langCode = isEnglish ? "en" : "id";
 
-    // CEK ESKALASI
+    // CEK ADMIN MODE SAAT ESKALASI
+    const { data: activeEscalation } = await supabase
+      .from("escalations")
+      .select("id, status")
+      .eq("conversation_id", chatId)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (activeEscalation) {
+      /*
+        - Sesi dihandle admin, MILA tidak aktif
+        - Update history chat di database agar pesan user tersimpan dan admin bisa membacanya.
+      */
+      await supabase.from("conversations").upsert(
+        {
+          id: chatId,
+          channel: "web",
+          messages: messages,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" },
+      );
+
+      /*
+        - Kirim balasan stream kosong (" ") ke frontend agar MILA terlihat tidak aktif
+        - (Di frontend kita sudah set fungsi filter pesan kosong agar tidak di-render)
+      */
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(`0:" "\n`));
+          controller.enqueue(
+            encoder.encode(
+              `d:${JSON.stringify({ finishReason: "stop", usage: { promptTokens: 0, completionTokens: 0 } })}\n`,
+            ),
+          );
+          controller.close();
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "x-vercel-ai-data-stream": "v1",
+        },
+      });
+    }
+
+    // CEK ESKALASI (jika belum ada sesi chat admin)
     const escalation = await isEscalationRequest(query, isEnglish);
 
     if (escalation) {
       const escalationMsg = isEnglish
         ? "I am transferring you to our human staff. ⚠️ Please do not clear this chat session or close your browser. Wait a moment, and our admin will reply to your message directly in this chat window. 🙏"
         : "Mila sedang mengalihkan Kakak ke staff/admin kami. ⚠️ Mohon JANGAN menghapus riwayat chat ini (Clear Session) atau menutup browser ya. Harap bersabar menunggu sebentar, admin kami akan segera membalas pesan Kakak langsung di jendela chat ini. 🙏";
+
       // Upsert conversation dulu supaya ada foreign key-nya
       const finalMessages = [
         ...messages,
@@ -157,7 +210,7 @@ export async function POST(req: Request) {
 
       return new Response(stream, {
         headers: {
-          "Content-Type": "text/event-stream",
+          "Content-Type": "text/plain; charset=utf-8",
           "x-vercel-ai-data-stream": "v1",
         },
       });
@@ -225,7 +278,7 @@ export async function POST(req: Request) {
     );
 
     const result = streamText({
-      model: anthropic("claude-3-haiku-20240307"),
+      model: anthropic("claude-haiku-4-5-20251001"),
       system: systemPrompt,
       messages: coreMessages,
       async onFinish({ text }) {
