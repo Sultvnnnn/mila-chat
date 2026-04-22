@@ -105,7 +105,12 @@ export default function Home() {
       .channel(`realtime-messages-${sessionId}`)
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "conversations" },
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "conversations",
+          filter: `id=eq.${sessionId}`,
+        },
         (payload) => {
           const newPayload = payload.new as any;
 
@@ -113,6 +118,7 @@ export default function Home() {
             const updatedMessages = newPayload.messages;
             if (updatedMessages?.length > 0) {
               const lastMsg = updatedMessages[updatedMessages.length - 1];
+              // Update jika pesan terakhir bukan dari user (alias dari admin/MILA)
               if (lastMsg?.role !== "user") {
                 setMessages(updatedMessages);
               }
