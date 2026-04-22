@@ -1,14 +1,17 @@
-"use server";
-
 import { supabase } from "@/lib/supabase";
-import { revalidatePath } from "next/cache";
 
-export async function sendAdminReply(
-  conversationId: string,
-  messageContent: string,
-) {
+export async function POST(req: Request) {
   try {
-    // ambil data conversation
+    const { conversationId, messageContent } = await req.json();
+
+    if (!conversationId || !messageContent) {
+      return Response.json(
+        { success: false, error: "Missing fields." },
+        { status: 400 },
+      );
+    }
+
+    // Ambil pesan yang ada
     const { data: conversation, error: fetchError } = await supabase
       .from("conversations")
       .select("messages")
@@ -16,26 +19,28 @@ export async function sendAdminReply(
       .single();
 
     if (fetchError || !conversation) {
-      throw new Error("Failed to fetch conversation data.");
+      return Response.json(
+        { success: false, error: "Conversation not found." },
+        { status: 404 },
+      );
     }
 
-    // pesan balasan admin
+    // Buat pesan admin
     const adminMessage = {
       id: crypto.randomUUID(),
-      role: "assistant", // tetep assistant biar dirender sebagai balasan dari sistem
+      role: "assistant",
       content: messageContent,
       createdAt: new Date().toISOString(),
       isAdmin: true,
     };
 
-    // merge pesan baru dengan pesan lama
     const currentMessages = Array.isArray(conversation.messages)
       ? conversation.messages
       : [];
 
     const updatedMessages = [...currentMessages, adminMessage];
 
-    // update array messages di table conversations
+    // Update ke DB — trigger Supabase Realtime ke client
     const { error: updateError } = await supabase
       .from("conversations")
       .update({
@@ -48,12 +53,12 @@ export async function sendAdminReply(
       throw updateError;
     }
 
-    // refresh ui
-    revalidatePath(`/admin/escalations`);
-
-    return { success: true };
+    return Response.json({ success: true });
   } catch (error) {
-    console.error(`Error sending admin reply: ${error}`);
-    return { success: false, error: "Failed to send admin reply." };
+    console.error("Error sending admin reply:", error);
+    return Response.json(
+      { success: false, error: "Internal server error." },
+      { status: 500 },
+    );
   }
 }

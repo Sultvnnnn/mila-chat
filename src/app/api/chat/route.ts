@@ -158,8 +158,8 @@ export async function POST(req: Request) {
 
     if (escalation) {
       const escalationMsg = isEnglish
-        ? "I am transferring you to our human staff. ⚠️ Please do not clear this chat session or close your browser. Wait a moment, and our admin will reply to your message directly in this chat window. 🙏"
-        : "Mila sedang mengalihkan Kakak ke staff/admin kami. ⚠️ Mohon JANGAN menghapus riwayat chat ini (Clear Session) atau menutup browser ya. Harap bersabar menunggu sebentar, admin kami akan segera membalas pesan Kakak langsung di jendela chat ini. 🙏";
+        ? "I am transferring you to our human staff. \n\n⚠️ Please do not clear this chat session or close your browser. Wait a moment, and our admin will reply to your message directly in this chat window. 🙏"
+        : "Mila sedang mengalihkan Kakak ke staff/admin kami. \n\n⚠️ Mohon JANGAN menghapus riwayat chat ini (Clear Session) atau menutup browser ya. Harap bersabar menunggu sebentar, admin kami akan segera membalas pesan Kakak langsung di jendela chat ini. 🙏";
 
       // Upsert conversation dulu supaya ada foreign key-nya
       const finalMessages = [
@@ -192,30 +192,16 @@ export async function POST(req: Request) {
         console.error("Failed to insert escalation:", escError.message);
       }
 
-      // Return stream response
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(
-            encoder.encode(`0:${JSON.stringify(escalationMsg)}\n`),
-          );
-          controller.enqueue(
-            encoder.encode(
-              `d:${JSON.stringify({ finishReason: "stop", usage: { promptTokens: 0, completionTokens: 0 } })}\n`,
-            ),
-          );
-          controller.close();
-        },
+      // Pakai streamText agar format stream konsisten dengan useChat AI SDK
+      // sehingga pesan langsung muncul di UI tanpa perlu refresh
+      const result = streamText({
+        model: anthropic("claude-haiku-4-5-20251001"),
+        system: `You must reply with EXACTLY this message, word for word, no changes:\n\n${escalationMsg}`,
+        messages: [{ role: "user", content: "." }],
       });
 
-      return new Response(stream, {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "x-vercel-ai-data-stream": "v1",
-        },
-      });
+      return result.toUIMessageStreamResponse();
     }
-    // ──────────────────────────────────────────────────────────────────────────
 
     // generate embedding
     const embedding = await generateEmbedding(query);

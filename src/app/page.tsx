@@ -79,7 +79,7 @@ export default function Home() {
         .from("conversations")
         .select("messages")
         .eq("id", sessionId)
-        .single();
+        .maybeSingle();
 
       if (convData && convData.messages) {
         setMessages(convData.messages);
@@ -97,6 +97,31 @@ export default function Home() {
     loadData();
   }, [sessionId, setMessages]);
 
+  //? Polling fallback saat sesi eskalasi aktif
+  //? Realtime kadang tidak nyampe kalau update dilakukan dari server-side (API route)
+  useEffect(() => {
+    if (!isEscalated || !sessionId) return;
+
+    const poll = async () => {
+      const { data } = await supabase
+        .from("conversations")
+        .select("messages")
+        .eq("id", sessionId)
+        .maybeSingle();
+
+      if (data?.messages) {
+        const lastMsg = data.messages[data.messages.length - 1];
+        if (lastMsg?.isAdmin === true) {
+          setMessages(data.messages);
+        }
+      }
+    };
+
+    // Poll setiap 2 detik selama sesi eskalasi aktif
+    const interval = setInterval(poll, 2000);
+    return () => clearInterval(interval);
+  }, [isEscalated, sessionId, setMessages]);
+
   //? Supabase realtime listeners for realtime chat
   useEffect(() => {
     if (!sessionId) return;
@@ -109,24 +134,41 @@ export default function Home() {
           event: "UPDATE",
           schema: "public",
           table: "conversations",
-          filter: `id=eq.${sessionId}`,
         },
         (payload) => {
           const newPayload = payload.new as any;
 
-          if (newPayload && newPayload.id === sessionId) {
-            const updatedMessages = newPayload.messages;
-            if (updatedMessages?.length > 0) {
-              const lastMsg = updatedMessages[updatedMessages.length - 1];
-              // Update jika pesan terakhir bukan dari user (alias dari admin/MILA)
-              if (lastMsg?.role !== "user") {
-                setMessages(updatedMessages);
-              }
-            }
+          console.log(
+            "[Realtime] UPDATE conversations:",
+            newPayload?.id,
+            "sessionId:",
+            sessionId,
+          );
+
+          // Filter manual — hanya proses konversasi milik user ini
+          if (!newPayload || newPayload.id !== sessionId) return;
+
+          const updatedMessages = newPayload.messages;
+          if (!updatedMessages?.length) return;
+
+          const lastMsg = updatedMessages[updatedMessages.length - 1];
+          console.log(
+            "[Realtime] lastMsg:",
+            lastMsg?.role,
+            "isAdmin:",
+            lastMsg?.isAdmin,
+          );
+
+          // Update hanya jika pesan terakhir dari admin
+          if (lastMsg?.isAdmin === true) {
+            console.log("[Realtime] setMessages dipanggil!");
+            setMessages(updatedMessages);
           }
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[Realtime] convChannel status:", status);
+      });
 
     const escChannel = supabase
       .channel(`realtime-esc-${sessionId}`)

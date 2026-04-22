@@ -13,6 +13,7 @@ import {
   Bot,
   CheckCircle2,
   ArrowUp,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,6 @@ import {
   InputGroupButton,
 } from "@/components/ui/input-group";
 import ReactMarkdown from "react-markdown";
-import { sendAdminReply } from "./actions";
 
 export default function EscalationsPage() {
   const [activeTab, setActiveTab] = useState<"pending" | "resolved">("pending");
@@ -68,6 +68,7 @@ export default function EscalationsPage() {
     fetchEscalations();
   }, []);
 
+  // Realtime listener: auto-update ketika ada eskalasi baru atau status berubah
   useEffect(() => {
     const escChannel = supabase
       .channel("realtime-admin-escalations")
@@ -85,6 +86,7 @@ export default function EscalationsPage() {
     };
   }, []);
 
+  // Realtime listener: auto-update chat history ketika user kirim pesan baru
   useEffect(() => {
     if (!selectedTicket) return;
 
@@ -124,7 +126,7 @@ export default function EscalationsPage() {
     setIsSheetOpen(true);
     setTimeout(() => {
       scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-      inputRef.current?.focus(); // Auto focus input pas sheet dibuka
+      inputRef.current?.focus();
     }, 100);
   };
 
@@ -158,6 +160,7 @@ export default function EscalationsPage() {
     setAdminReply("");
     setIsSending(true);
 
+    // Optimistic update: tampilkan pesan langsung di UI sebelum response dari server
     const newMessage = {
       id: crypto.randomUUID(),
       role: "assistant",
@@ -178,16 +181,25 @@ export default function EscalationsPage() {
       50,
     );
 
-    const res = await sendAdminReply(
-      selectedTicket.conversation_id,
-      textToSend,
-    );
+    try {
+      const res = await fetch("/api/admin/reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId: selectedTicket.conversation_id,
+          messageContent: textToSend,
+        }),
+      });
 
-    if (res.success) {
-      fetchEscalations();
-    } else {
-      console.error("Gagal mengirim balasan.");
+      const data = await res.json();
+      if (!data.success) {
+        console.error("Gagal mengirim balasan:", data.error);
+      }
+      // Chat history di sisi user update otomatis via Realtime listener
+    } catch (error) {
+      console.error("Error sending reply:", error);
     }
+
     setIsSending(false);
   };
 
@@ -348,7 +360,7 @@ export default function EscalationsPage() {
 
       {/* SHEET DETAIL CHAT */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-md md:max-w-lg p-0 flex flex-col border-l-0 sm:border-l shadow-2xl">
+        <SheetContent className="w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0 flex flex-col border-l-0 sm:border-l shadow-2xl">
           <SheetHeader className="p-4 border-b bg-secondary/50 backdrop-blur-sm z-10 flex flex-row items-center justify-between text-left">
             <div>
               <SheetTitle className="flex items-center gap-2 text-lg">
@@ -359,22 +371,35 @@ export default function EscalationsPage() {
                 ID: {selectedTicket?.conversation_id}
               </p>
             </div>
-            {selectedTicket?.status === "pending" && (
+
+            <div className="flex items-center gap-2">
+              {selectedTicket?.status === "pending" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    handleStatusUpdate(selectedTicket.id, "resolved")
+                  }
+                  className="h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                  <span className="hidden sm:inline">Tandai Selesai</span>
+                  <span className="sm:hidden">Selesai</span>
+                </Button>
+              )}
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  handleStatusUpdate(selectedTicket.id, "resolved")
-                }
-                className="h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSheetOpen(false)}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground bg-zinc-200/50 hover:bg-zinc-200 dark:bg-zinc-800/50 dark:hover:bg-zinc-800 rounded-full"
+                title="Tutup Panel"
               >
-                <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                Tandai Selesai
+                <X className="h-4 w-4" />
               </Button>
-            )}
+            </div>
           </SheetHeader>
 
-          <ScrollArea className="flex-1 p-4 bg-zinc-50 dark:bg-zinc-950/50">
+          <ScrollArea className="flex-1 p-4 md:p-6 bg-zinc-50 dark:bg-zinc-950/50">
             <div className="flex flex-col gap-4 pb-4">
               {selectedTicket?.conversations?.messages?.map(
                 (msg: any, i: number) => {
@@ -412,12 +437,12 @@ export default function EscalationsPage() {
                       </div>
 
                       <div
-                        className={`px-4 py-2.5 rounded-2xl text-sm shadow-sm relative ${
+                        className={`px-4 py-2.5 rounded-2xl text-[15px] shadow-sm relative ${
                           isUser
                             ? "bg-white dark:bg-zinc-900 border border-border text-foreground rounded-tl-sm"
                             : isSystemMila
                               ? "bg-zinc-800 text-zinc-100 dark:bg-zinc-800 rounded-tl-sm"
-                              : "bg-mula text-zinc-900 rounded-tr-sm" // 3. ADMIN BUBBLE MENGGUNAKAN bg-mula
+                              : "bg-mula text-zinc-900 rounded-tr-sm"
                         }`}
                       >
                         <div className="whitespace-pre-wrap font-sans leading-relaxed">
@@ -468,9 +493,8 @@ export default function EscalationsPage() {
             </div>
           </ScrollArea>
 
-          {/* AREA INPUT CHAT */}
           {selectedTicket?.status === "pending" ? (
-            <div className="p-4 bg-background border-t">
+            <div className="p-4 md:p-6 bg-background border-t">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -492,18 +516,18 @@ export default function EscalationsPage() {
                     disabled={isSending}
                     minRows={1}
                     maxRows={6}
-                    className="flex field-sizing-content min-h-12 w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm transition-[color,box-shadow] outline-none placeholder:text-muted-foreground font-sans"
+                    className="flex field-sizing-content min-h-12 w-full resize-none rounded-md bg-transparent px-4 py-3 text-[15px] transition-[color,box-shadow] outline-none placeholder:text-muted-foreground font-sans"
                     placeholder="Ketik balasan untuk pengguna..."
                   />
                   <InputGroupAddon align="block-end" className="p-2">
                     <InputGroupButton
                       type="submit"
                       disabled={!adminReply.trim() || isSending}
-                      className="ml-auto rounded-full h-8 w-8 transition-all bg-mula text-zinc-900 hover:bg-mula-dark"
+                      className="ml-auto rounded-full h-9 w-9 transition-all bg-mula text-zinc-900 hover:bg-mula-dark"
                       size="icon-sm"
                     >
                       <ArrowUp
-                        size={16}
+                        size={18}
                         className={isSending ? "opacity-50" : ""}
                       />
                     </InputGroupButton>
@@ -512,7 +536,7 @@ export default function EscalationsPage() {
               </form>
             </div>
           ) : (
-            <div className="p-4 bg-muted/50 border-t text-center">
+            <div className="p-4 md:p-6 bg-muted/50 border-t text-center">
               <p className="text-sm text-muted-foreground font-medium flex items-center justify-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                 Sesi ini telah diselesaikan.
