@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   ArrowUp,
   X,
+  MessageSquareWarning,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -226,11 +227,17 @@ export default function EscalationsPage() {
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="p-3 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-xl shrink-0">
+          <MessageSquareWarning className="h-6 w-6" />
+        </div>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Pusat Eskalasi</h2>
-          <p className="text-muted-foreground">
-            Kelola dan tanggapi permintaan bantuan pengguna secara langsung.
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-serif">
+            Escalations
+          </h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            Ambil alih percakapan dari MILA dan kendala pengguna secara
+            langsung.
           </p>
         </div>
       </div>

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ShortcutListener } from "@/components/ShortcutListener";
 
 // navigation items
@@ -38,6 +39,7 @@ export default function AdminLayout({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -47,6 +49,36 @@ export default function AdminLayout({
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
+
+  // fetch pending escalations count
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      const { count } = await supabase
+        .from("escalations")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+
+      setPendingCount(count || 0);
+    };
+
+    fetchPendingCount();
+
+    // real-time listener for update badge
+    const channel = supabase
+      .channel("admin-layout-badge")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "escalations" },
+        () => {
+          fetchPendingCount();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -113,7 +145,7 @@ export default function AdminLayout({
             isCollapsed ? "lg:w-20" : "lg:w-72"
           } ${isMobileOpen ? "translate-x-0 w-72" : "-translate-x-full w-72"}`}
         >
-          {/* Sidebar Header (Logo) - Bersih dari tombol toggle */}
+          {/* Sidebar Header (Logo) */}
           <div
             className={`flex h-16 shrink-0 items-center border-b border-zinc-200 dark:border-zinc-800 transition-all ${isCollapsed ? "justify-center" : "px-6"}`}
           >
@@ -122,7 +154,6 @@ export default function AdminLayout({
                 M
               </span>
             ) : (
-              // Logo Full
               <div className="flex flex-col select-none pt-1">
                 <span className="font-serif italic text-lg mb-[-8px] mr-16 text-zinc-700 dark:text-zinc-400">
                   me
@@ -148,6 +179,7 @@ export default function AdminLayout({
                   : pathname.startsWith(link.href);
 
               const Icon = link.icon;
+              const isEscalation = link.name === "Escalations";
 
               return (
                 <Link
@@ -159,19 +191,42 @@ export default function AdminLayout({
                       : "text-zinc-600 dark:text-zinc-400 hover:bg-mula-light/50 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                   } ${isCollapsed ? "lg:justify-center" : ""}`}
                 >
-                  <Icon
-                    className={`h-5 w-5 shrink-0 ${isActive ? "text-zinc-900" : "text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-100"}`}
-                  />
+                  <div className="relative">
+                    <Icon
+                      className={`h-5 w-5 shrink-0 ${isActive ? "text-zinc-900" : "text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-100"}`}
+                    />
+                    {/* Badge titik merah saat sidebar di-collapse */}
+                    {isEscalation && pendingCount > 0 && isCollapsed && (
+                      <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                      </span>
+                    )}
+                  </div>
 
                   <span
-                    className={`text-sm truncate transition-all duration-300 ${isCollapsed ? "lg:hidden" : "block"}`}
+                    className={`text-sm truncate transition-all duration-300 flex-1 ${isCollapsed ? "lg:hidden" : "block"}`}
                   >
                     {link.name}
                   </span>
 
+                  {/* Badge angka saat sidebar kebuka */}
+                  {isEscalation && pendingCount > 0 && !isCollapsed && (
+                    <Badge
+                      variant="destructive"
+                      className="ml-auto flex h-5 w-5 items-center justify-center rounded-full p-0 text-[10px]"
+                    >
+                      {pendingCount}
+                    </Badge>
+                  )}
+
+                  {/* Tooltip saat di-collapse */}
                   {isCollapsed && (
                     <div className="absolute left-full ml-4 hidden rounded-md bg-zinc-900 px-2 py-1.5 text-xs font-medium text-white opacity-0 group-hover:opacity-100 lg:block z-50 pointer-events-none whitespace-nowrap shadow-md">
-                      {link.name}
+                      {link.name}{" "}
+                      {isEscalation && pendingCount > 0
+                        ? `(${pendingCount})`
+                        : ""}
                     </div>
                   )}
                 </Link>
@@ -199,10 +254,8 @@ export default function AdminLayout({
 
         {/* MAIN CONTENT AREA */}
         <main className="flex-1 flex flex-col min-w-0 bg-zinc-50 dark:bg-zinc-950">
-          {/* HEADER TOP BAR */}
           <header className="flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md px-4 sm:px-6">
             <div className="flex items-center gap-2 sm:gap-4">
-              {/* Tombol Hamburger (Mobile) */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -212,7 +265,6 @@ export default function AdminLayout({
                 <Menu className="h-5 w-5" />
               </Button>
 
-              {/* Tombol Toggle Sidebar (Desktop) */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -223,10 +275,8 @@ export default function AdminLayout({
                 <PanelLeft className="h-5 w-5" />
               </Button>
 
-              {/* Divider */}
               <div className="hidden lg:block h-6 w-px bg-zinc-200 dark:bg-zinc-800 mx-1"></div>
 
-              {/* Judul Halaman */}
               <h2 className="text-lg font-semibold tracking-tight capitalize text-zinc-800 dark:text-zinc-100 hidden sm:block">
                 {pageTitle}
               </h2>
