@@ -15,6 +15,10 @@ import {
   ArrowUp,
   X,
   MessageSquareWarning,
+  Trash2,
+  ListChecks,
+  Square,
+  CheckSquare,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,6 +36,16 @@ import {
   InputGroupAddon,
   InputGroupButton,
 } from "@/components/ui/input-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ReactMarkdown from "react-markdown";
 
 export default function EscalationsPage() {
@@ -43,6 +57,11 @@ export default function EscalationsPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [adminReply, setAdminReply] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [ticketToDelete, setTicketToDelete] = useState<string | null>(null);
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
+  const [showBulkDeleteAlert, setShowBulkDeleteAlert] = useState(false);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -194,16 +213,77 @@ export default function EscalationsPage() {
 
       const data = await res.json();
       if (!data.success) {
-        console.error("Gagal mengirim balasan:", data.error);
+        console.error(`Gagal mengirim balasan: ${data.error}`);
       }
       // Chat history di sisi user update otomatis via Realtime listener
     } catch (error) {
-      console.error("Error sending reply:", error);
+      console.error(`Error sending reply: ${error}`);
     }
 
     setIsSending(false);
   };
 
+  // Delete ticket
+  const handleDeleteTicket = async () => {
+    if (!ticketToDelete) return;
+
+    const { error } = await supabase
+      .from("escalations")
+      .delete()
+      .eq("id", ticketToDelete);
+
+    if (error) {
+      console.error(`Failed to delete ticket: ${error.message}`);
+    } else {
+      fetchEscalations();
+      if (selectedTicket?.id === ticketToDelete) {
+        setIsSheetOpen(false);
+        setSelectedTicket(null);
+      }
+    }
+    setTicketToDelete(null);
+  };
+
+  // Bulk delete tickets
+  const toggleSelection = (id: string) => {
+    setSelectedTicketIds((prev) =>
+      prev.includes(id) ? prev.filter((tId) => tId !== id) : [...prev, id],
+    );
+  };
+
+  const handleSelectAll = (currentList: any[]) => {
+    if (selectedTicketIds.length === currentList.length) {
+      setSelectedTicketIds([]); // unselect all
+    } else {
+      setSelectedTicketIds(currentList.map((t) => t.id)); // select all
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTicketIds.length === 0) return;
+
+    const { error } = await supabase
+      .from("escalations")
+      .delete()
+      .in("id", selectedTicketIds);
+
+    if (error) {
+      console.error(`Failed to bulk delete tickets: ${error.message}`);
+    } else {
+      fetchEscalations();
+      setIsBulkMode(false);
+      setSelectedTicketIds([]);
+      setShowBulkDeleteAlert(false);
+
+      // close sheet if any of the deleted tickets is currently open
+      if (selectedTicket && selectedTicketIds.includes(selectedTicket.id)) {
+        setIsSheetOpen(false);
+        setSelectedTicket(null);
+      }
+    }
+  };
+
+  // Parser text function
   const extractText = (msg: any) => {
     if (msg.content) return msg.content;
     if (msg.parts) {
@@ -215,6 +295,7 @@ export default function EscalationsPage() {
     return "";
   };
 
+  // Filter data
   const pendingTickets = escalations.filter((t) => t.status === "pending");
   const resolvedTickets = escalations.filter((t) => t.status === "resolved");
 
@@ -224,6 +305,8 @@ export default function EscalationsPage() {
   const filteredResolved = resolvedTickets.filter((t) =>
     t.reason?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+  const activeList =
+    activeTab === "pending" ? filteredPending : filteredResolved;
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -236,22 +319,68 @@ export default function EscalationsPage() {
             Escalations
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Ambil alih percakapan dari MILA dan kendala pengguna secara
+            Ambil alih percakapan dari MILA dan tangani kendala pengguna secara
             langsung.
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-4 my-4">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Cari alasan eskalasi..."
-            className="pl-8 bg-background"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      {/* Area Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 my-4 h-[40px]">
+        {isBulkMode ? (
+          <div className="flex items-center gap-2 w-full animate-in fade-in zoom-in-95">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setIsBulkMode(false);
+                setSelectedTicketIds([]);
+              }}
+              className="text-zinc-500 hover:text-zinc-900"
+            >
+              Batal
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleSelectAll(activeList)}
+              className="border-zinc-300 dark:border-zinc-700"
+            >
+              {selectedTicketIds.length === activeList.length &&
+              activeList.length > 0
+                ? "Batal Pilih Semua"
+                : "Pilih Semua"}
+            </Button>
+            <span className="text-sm font-medium text-muted-foreground mx-auto">
+              {selectedTicketIds.length} tiket terpilih
+            </span>
+            <Button
+              variant="destructive"
+              disabled={selectedTicketIds.length === 0}
+              onClick={() => setShowBulkDeleteAlert(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Hapus
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 w-full animate-in fade-in">
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari alasan eskalasi..."
+                className="pl-8 bg-background"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setIsBulkMode(true)}
+              className="ml-auto"
+            >
+              <ListChecks className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Pilih Tiket</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* TAB */}
@@ -262,7 +391,10 @@ export default function EscalationsPage() {
           }`}
         />
         <button
-          onClick={() => setActiveTab("pending")}
+          onClick={() => {
+            setActiveTab("pending");
+            if (isBulkMode) setSelectedTicketIds([]);
+          }}
           className={`relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ${
             activeTab === "pending"
               ? "text-zinc-900"
@@ -280,7 +412,10 @@ export default function EscalationsPage() {
           )}
         </button>
         <button
-          onClick={() => setActiveTab("resolved")}
+          onClick={() => {
+            setActiveTab("resolved");
+            if (isBulkMode) setSelectedTicketIds([]);
+          }}
           className={`relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ${
             activeTab === "resolved"
               ? "text-zinc-900"
@@ -294,40 +429,81 @@ export default function EscalationsPage() {
       {/* KONTEN TAB */}
       {activeTab === "pending" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredPending.map((ticket) => (
-            <div
-              key={ticket.id}
-              onClick={() => handleOpenTicket(ticket)}
-              className="group flex flex-col justify-between p-5 border border-border bg-card rounded-xl shadow-sm hover:shadow-md hover:border-mula transition-all cursor-pointer"
-            >
-              <div>
-                <div className="flex justify-between items-start mb-2">
-                  <Badge
-                    variant="outline"
-                    className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
-                  >
-                    Pending
-                  </Badge>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    {format(new Date(ticket.created_at), "dd MMM, HH:mm", {
-                      locale: localeId,
-                    })}
-                  </span>
+          {filteredPending.map((ticket) => {
+            const isSelected = selectedTicketIds.includes(ticket.id);
+
+            return (
+              <div
+                key={ticket.id}
+                onClick={() =>
+                  isBulkMode
+                    ? toggleSelection(ticket.id)
+                    : handleOpenTicket(ticket)
+                }
+                className={`group relative flex flex-col justify-between p-5 border rounded-xl transition-all cursor-pointer ${
+                  isSelected
+                    ? "border-mula bg-mula/10 dark:bg-mula/5"
+                    : "border-border bg-card shadow-sm hover:shadow-md hover:border-mula"
+                }`}
+              >
+                {/* Checkbox kalau isBulkMode aktif */}
+                {isBulkMode && (
+                  <div className="absolute top-4 right-4 z-10">
+                    {isSelected ? (
+                      <CheckSquare className="h-5 w-5 text-mula-dark dark:text-mula animate-in zoom-in" />
+                    ) : (
+                      <Square className="h-5 w-5 text-zinc-300 dark:text-zinc-700" />
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex justify-between items-start mb-2 pr-6">
+                    <Badge
+                      variant="outline"
+                      className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
+                    >
+                      Pending
+                    </Badge>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {format(new Date(ticket.created_at), "dd MMM, HH:mm", {
+                        locale: localeId,
+                      })}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-card-foreground line-clamp-2 leading-snug pr-6">
+                    "{ticket.reason}"
+                  </h3>
                 </div>
-                <h3 className="font-semibold text-card-foreground line-clamp-2 leading-snug">
-                  "{ticket.reason}"
-                </h3>
+                <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-mono bg-secondary px-2 py-1 rounded-md">
+                    ID: {ticket.conversation_id.split("-")[0]}...
+                  </span>
+
+                  {/* Tombol hapus/balas di-hide kalau lagi mode milih */}
+                  {!isBulkMode && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors z-10"
+                        title="Hapus Tiket"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTicketToDelete(ticket.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm font-medium text-blue-600 group-hover:underline px-2">
+                        Balas →
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-mono bg-secondary px-2 py-1 rounded-md">
-                  ID: {ticket.conversation_id.split("-")[0]}...
-                </span>
-                <span className="text-sm font-medium text-blue-600 group-hover:underline">
-                  Balas →
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {!loading && filteredPending.length === 0 && (
             <div className="col-span-full py-12 text-center text-muted-foreground border-2 border-dashed rounded-xl">
               Tidak ada tiket yang menunggu balasan.
@@ -336,32 +512,80 @@ export default function EscalationsPage() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredResolved.map((ticket) => (
-            <div
-              key={ticket.id}
-              onClick={() => handleOpenTicket(ticket)}
-              className="group flex flex-col justify-between p-5 border border-border bg-card/50 rounded-xl hover:bg-card transition-all cursor-pointer opacity-80 hover:opacity-100"
-            >
-              <div>
-                <div className="flex justify-between items-start mb-2">
-                  <Badge
-                    variant="outline"
-                    className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
-                  >
-                    Resolved
-                  </Badge>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    {format(new Date(ticket.created_at), "dd MMM, HH:mm", {
-                      locale: localeId,
-                    })}
-                  </span>
+          {filteredResolved.map((ticket) => {
+            const isSelected = selectedTicketIds.includes(ticket.id);
+
+            return (
+              <div
+                key={ticket.id}
+                onClick={() =>
+                  isBulkMode
+                    ? toggleSelection(ticket.id)
+                    : handleOpenTicket(ticket)
+                }
+                className={`group relative flex flex-col justify-between p-5 border rounded-xl transition-all cursor-pointer ${
+                  isSelected
+                    ? "border-mula bg-mula/10 dark:bg-mula/5 opacity-100"
+                    : "border-border bg-card/50 hover:bg-card opacity-80 hover:opacity-100"
+                }`}
+              >
+                {/* Checkbox Resolved Tab */}
+                {isBulkMode && (
+                  <div className="absolute top-4 right-4 z-10">
+                    {isSelected ? (
+                      <CheckSquare className="h-5 w-5 text-mula-dark dark:text-mula animate-in zoom-in" />
+                    ) : (
+                      <Square className="h-5 w-5 text-zinc-300 dark:text-zinc-700" />
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex justify-between items-start mb-2 pr-6">
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
+                    >
+                      Resolved
+                    </Badge>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {format(new Date(ticket.created_at), "dd MMM, HH:mm", {
+                        locale: localeId,
+                      })}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-card-foreground line-clamp-2 leading-snug pr-6">
+                    "{ticket.reason}"
+                  </h3>
                 </div>
-                <h3 className="font-semibold text-card-foreground line-clamp-2 leading-snug">
-                  "{ticket.reason}"
-                </h3>
+                <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-mono bg-secondary px-2 py-1 rounded-md">
+                    ID: {ticket.conversation_id.split("-")[0]}...
+                  </span>
+
+                  {!isBulkMode && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors z-10"
+                        title="Hapus Tiket"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTicketToDelete(ticket.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm font-medium text-emerald-600 group-hover:underline px-2">
+                        Lihat →
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -552,6 +776,61 @@ export default function EscalationsPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* ALERT DELETE DIALOG */}
+      <AlertDialog
+        open={!!ticketToDelete}
+        onOpenChange={(open) => !open && setTicketToDelete(null)}
+      >
+        <AlertDialogContent className="rounded-xl border-border bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">
+              Hapus tiket eskalasi?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tindakan ini akan menghapus riwayat tiket dari daftar eskalasi
+              secara permanen. Percakapan aslinya tetap ada di database, tapi
+              tiket ini akan hilang.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-none">Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTicket}
+              className="bg-red-600 hover:bg-red-700 text-white transition-colors"
+            >
+              Ya, Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ALERT DELETE DIALOG (BULK) */}
+      <AlertDialog
+        open={showBulkDeleteAlert}
+        onOpenChange={setShowBulkDeleteAlert}
+      >
+        <AlertDialogContent className="rounded-xl border-border bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">
+              Hapus {selectedTicketIds.length} tiket?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tindakan ini akan menghapus semua tiket yang dipilih dari daftar
+              eskalasi secara permanen. Tindakan ini tidak bisa dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-none">Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-700 text-white transition-colors"
+            >
+              Ya, Hapus Semua
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
