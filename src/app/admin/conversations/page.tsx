@@ -12,6 +12,13 @@ import {
   Eye,
   Trash2,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  User,
+  Bot,
+  Headphones,
 } from "lucide-react";
 import {
   Sheet,
@@ -31,17 +38,18 @@ import {
 import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const ITEMS_PER_PAGE = 10;
+
 export default function ConversationsPage() {
   const { toast } = useToast();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [conversations, setConversations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedChat, setSelectedChat] = useState<any>(null);
 
-  // state modal
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
     type: "single" | "bulk";
@@ -49,13 +57,17 @@ export default function ConversationsPage() {
   }>({ isOpen: false, type: "single", chatId: null });
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchConversations = async () => {
+  const fetchConversations = async (page: number = 1) => {
     setIsLoading(true);
 
-    const { data, error } = await supabase
+    const from = (page - 1) * ITEMS_PER_PAGE;
+    const to = from + ITEMS_PER_PAGE - 1;
+
+    const { data, error, count } = await supabase
       .from("conversations")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
     if (error) {
       console.error(
@@ -66,17 +78,18 @@ export default function ConversationsPage() {
         description: "Gagal memuat data percakapan.",
         variant: "destructive",
       });
-    } else if (data) {
-      setConversations(data);
+    } else {
+      setConversations(data || []);
+      setTotalPages(Math.ceil((count || 0) / ITEMS_PER_PAGE) || 1);
+      setCurrentPage(page);
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchConversations();
+    fetchConversations(1);
   }, []);
 
-  // open modal
   const confirmDeleteSingle = (id: string) => {
     setDeleteModal({ isOpen: true, type: "single", chatId: id });
   };
@@ -85,7 +98,6 @@ export default function ConversationsPage() {
     setDeleteModal({ isOpen: true, type: "bulk", chatId: null });
   };
 
-  // execute delete
   const executeDelete = async () => {
     setIsDeleting(true);
     try {
@@ -93,14 +105,15 @@ export default function ConversationsPage() {
         const { error } = await supabase
           .from("conversations")
           .delete()
-          .neq("id", "0");
+          .not("id", "is", null);
+
         if (error) throw error;
 
         toast({
           title: "🧹 Bersih Total",
           description: "Semua riwayat percakapan telah dimusnahkan.",
         });
-        setConversations([]);
+        fetchConversations(1);
         setSelectedChat(null);
       } else if (deleteModal.type === "single" && deleteModal.chatId) {
         const { error } = await supabase
@@ -113,9 +126,8 @@ export default function ConversationsPage() {
           title: "🗑️ Terhapus",
           description: "Percakapan berhasil dihapus.",
         });
-        setConversations((prev) =>
-          prev.filter((chat) => chat.id !== deleteModal.chatId),
-        );
+
+        fetchConversations(currentPage);
         if (selectedChat?.id === deleteModal.chatId) setSelectedChat(null);
       }
     } catch (error: any) {
@@ -131,8 +143,8 @@ export default function ConversationsPage() {
   };
 
   return (
-    <div className="flex-1 p-4 md:p-8 pt-6 w-full max-w-full overflow-hidden">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
+    <div className="flex-1 p-4 md:p-8 pt-6 w-full max-w-full overflow-hidden flex flex-col h-full">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8 shrink-0">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-xl shrink-0">
             <MessageSquare className="h-6 w-6" />
@@ -147,7 +159,6 @@ export default function ConversationsPage() {
           </div>
         </div>
 
-        {/* TOMBOL AKSI */}
         <div className="flex w-full sm:w-auto gap-2">
           <Button
             onClick={confirmDeleteAll}
@@ -159,7 +170,7 @@ export default function ConversationsPage() {
             Kosongkan
           </Button>
           <Button
-            onClick={fetchConversations}
+            onClick={() => fetchConversations(currentPage)}
             disabled={isLoading}
             className="flex-1 sm:flex-none bg-zinc-900 hover:bg-mula-dark text-white"
           >
@@ -171,18 +182,16 @@ export default function ConversationsPage() {
         </div>
       </div>
 
-      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-        <CardHeader className="p-4 md:p-6 border-b border-zinc-100 dark:border-zinc-800/50">
+      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
+        <CardHeader className="p-4 md:p-6 border-b border-zinc-100 dark:border-zinc-800/50 shrink-0">
           <CardTitle className="text-base md:text-lg font-semibold flex items-center gap-2">
             Data Obrolan Terakhir
           </CardTitle>
         </CardHeader>
 
-        {/* CARD CONTENT */}
-        <CardContent className="p-0 sm:p-6">
+        <CardContent className="p-0 flex-1 overflow-auto">
           <div className="block sm:hidden divide-y divide-zinc-100 dark:divide-zinc-800/50">
             {isLoading ? (
-              // SKELETON MOBILE
               Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex items-center justify-between p-4">
                   <div className="flex flex-col gap-2 w-full">
@@ -246,9 +255,9 @@ export default function ConversationsPage() {
             )}
           </div>
 
-          <div className="hidden sm:block overflow-x-auto">
+          <div className="hidden sm:block">
             <table className="w-full text-sm text-left whitespace-nowrap">
-              <thead className="bg-zinc-50 dark:bg-zinc-950/50 text-zinc-500 border-b border-zinc-200 dark:border-zinc-800">
+              <thead className="bg-zinc-50 dark:bg-zinc-950/50 text-zinc-500 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-10">
                 <tr>
                   <th className="px-4 py-3 font-medium">Session UUID</th>
                   <th className="px-4 py-3 font-medium text-center">
@@ -329,7 +338,65 @@ export default function ConversationsPage() {
             </table>
           </div>
         </CardContent>
+
+        {/* UI PAGINATION */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 shrink-0">
+            <span className="text-xs sm:text-sm text-zinc-500">
+              Halaman {currentPage} dari {totalPages}
+            </span>
+            <div className="flex gap-1 sm:gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => fetchConversations(1)}
+                disabled={currentPage === 1 || isLoading}
+                title="Ke Halaman Pertama"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => fetchConversations(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1 || isLoading}
+                title="Ke Halaman Sebelumnya"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() =>
+                  fetchConversations(Math.min(totalPages, currentPage + 1))
+                }
+                disabled={currentPage === totalPages || isLoading}
+                title="Ke Halaman Selanjutnya"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => fetchConversations(totalPages)}
+                disabled={currentPage === totalPages || isLoading}
+                title="Ke Halaman Terakhir"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
+
+      <div className="h-16 md:h-8 w-full flex-shrink-0" />
 
       {/* SHEET PANEL DETAIL CHAT */}
       <Sheet
@@ -351,22 +418,53 @@ export default function ConversationsPage() {
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-            {selectedChat?.messages?.map((msg: any, index: number) => (
-              <div
-                key={index}
-                className={`flex flex-col max-w-[90%] md:max-w-[85%] animate-in fade-in slide-in-from-bottom-2 ${msg.role === "user" ? "ml-auto items-end" : "mr-auto items-start"}`}
-              >
-                <span className="text-[10px] text-zinc-400 mb-1.5 ml-1 font-semibold tracking-wider uppercase">
-                  {msg.role === "user" ? "Pengguna" : "MILA AI"}
-                </span>
+            {selectedChat?.messages?.map((msg: any, index: number) => {
+              // LOGIKA PEMBEDA IDENTITAS
+              const isUser = msg.role === "user";
+              const isAdmin = msg.isAdmin;
+              const isSystemMila = msg.role === "assistant" && !isAdmin;
+
+              return (
                 <div
-                  className={`p-3 md:p-4 text-sm leading-relaxed whitespace-pre-wrap ${msg.role === "user" ? "bg-mula text-zinc-900 rounded-2xl rounded-tr-sm shadow-sm font-medium" : "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800 rounded-2xl rounded-tl-sm shadow-sm"}`}
+                  key={index}
+                  className={`flex flex-col max-w-[90%] md:max-w-[85%] animate-in fade-in slide-in-from-bottom-2 ${
+                    isUser ? "ml-auto items-end" : "mr-auto items-start"
+                  }`}
                 >
-                  {msg.content ||
-                    (msg.parts && msg.parts.map((p: any) => p.text).join(""))}
+                  {/* 👇 HEADER BUBBLE DENGAN ICON BIAR MAKIN JELAS 👇 */}
+                  <div className="flex items-center gap-1.5 mb-1 px-1">
+                    {isUser && <User className="h-3 w-3 text-zinc-500" />}
+                    {isSystemMila && <Bot className="h-3 w-3 text-zinc-500" />}
+                    {isAdmin && (
+                      <Headphones className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                    )}
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                      {isUser
+                        ? "Pengguna"
+                        : isAdmin
+                          ? "Admin (Staff)"
+                          : "Sistem MILA"}
+                    </span>
+                  </div>
+
+                  <div
+                    className={`p-3 md:p-4 text-sm leading-relaxed whitespace-pre-wrap ${
+                      isUser
+                        ? // BUBBLE PENGGUNA (Sebelah Kanan - Biru/Kuning bawaan lu)
+                          "bg-mula text-zinc-900 rounded-2xl rounded-tr-sm shadow-sm font-medium"
+                        : isAdmin
+                          ? // BUBBLE ADMIN (Sebelah Kiri - Warna Hijau Emerald biar beda banget)
+                            "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-100 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl rounded-tl-sm shadow-sm"
+                          : // BUBBLE MILA AI (Sebelah Kiri - Warna Abu-abu)
+                            "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800 rounded-2xl rounded-tl-sm shadow-sm"
+                    }`}
+                  >
+                    {msg.content ||
+                      (msg.parts && msg.parts.map((p: any) => p.text).join(""))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div className="h-8 w-full" />
           </div>
         </SheetContent>
