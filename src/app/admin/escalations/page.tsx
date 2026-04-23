@@ -19,6 +19,7 @@ import {
   ListChecks,
   Square,
   CheckSquare,
+  Archive,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -328,37 +329,55 @@ export default function EscalationsPage() {
       {/* Area Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 my-4 h-[40px]">
         {isBulkMode ? (
-          <div className="flex items-center gap-2 w-full animate-in fade-in zoom-in-95">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setIsBulkMode(false);
-                setSelectedTicketIds([]);
-              }}
-              className="text-zinc-500 hover:text-zinc-900"
-            >
-              Batal
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleSelectAll(activeList)}
-              className="border-zinc-300 dark:border-zinc-700"
-            >
-              {selectedTicketIds.length === activeList.length &&
-              activeList.length > 0
-                ? "Batal Pilih Semua"
-                : "Pilih Semua"}
-            </Button>
-            <span className="text-sm font-medium text-muted-foreground mx-auto">
-              {selectedTicketIds.length} tiket terpilih
-            </span>
-            <Button
-              variant="destructive"
-              disabled={selectedTicketIds.length === 0}
-              onClick={() => setShowBulkDeleteAlert(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" /> Hapus
-            </Button>
+          <div className="flex items-center justify-between w-full h-11 px-3 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-lg animate-in fade-in slide-in-from-top-1 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setIsBulkMode(false);
+                  setSelectedTicketIds([]);
+                }}
+                className="h-8 w-8 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md"
+                title="Batal"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <div className="h-4 w-px bg-zinc-300 dark:bg-zinc-600 mx-1"></div>
+              <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
+                {selectedTicketIds.length}{" "}
+                <span className="hidden sm:inline font-medium text-zinc-500 dark:text-zinc-400">
+                  terpilih
+                </span>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleSelectAll(activeList)}
+                className="h-8 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                <CheckSquare className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">
+                  {selectedTicketIds.length === activeList.length &&
+                  activeList.length > 0
+                    ? "Batal Pilih Semua"
+                    : "Pilih Semua"}
+                </span>
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedTicketIds.length === 0}
+                onClick={() => setShowBulkDeleteAlert(true)}
+                className="h-8 text-xs font-medium px-3 shadow-none"
+              >
+                <Trash2 className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">Hapus</span>
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="flex items-center gap-4 w-full animate-in fade-in">
@@ -504,9 +523,22 @@ export default function EscalationsPage() {
               </div>
             );
           })}
+
+          {/* EMPTY STATE */}
           {!loading && filteredPending.length === 0 && (
-            <div className="col-span-full py-12 text-center text-muted-foreground border-2 border-dashed rounded-xl">
-              Tidak ada tiket yang menunggu balasan.
+            <div className="col-span-full py-16 flex flex-col items-center justify-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-950/50 animate-in fade-in duration-500">
+              <div className="relative flex items-center justify-center h-14 w-14 mb-4">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-20 animate-ping"></span>
+                <div className="relative flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shadow-sm border border-emerald-200 dark:border-emerald-800/50">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1 tracking-tight">
+                Semua tiket telah tertangani
+              </h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center">
+                Tidak ada pengguna yang menunggu balasan saat ini.
+              </p>
             </div>
           )}
         </div>
@@ -586,6 +618,23 @@ export default function EscalationsPage() {
               </div>
             );
           })}
+
+          {/* EMPTY STATE */}
+          {!loading && filteredResolved.length === 0 && (
+            <div className="col-span-full py-16 flex flex-col items-center justify-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-950/50 animate-in fade-in duration-500">
+              <div className="relative flex items-center justify-center h-14 w-14 mb-4">
+                <div className="relative flex items-center justify-center h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-800/50 shadow-sm border border-zinc-200 dark:border-zinc-700">
+                  <Archive className="h-6 w-6 text-zinc-400 dark:text-zinc-500" />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1 tracking-tight">
+                Belum ada riwayat penyelesaian
+              </h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center">
+                Tiket eskalasi yang telah diselesaikan akan muncul di sini.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
