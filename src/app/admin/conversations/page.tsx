@@ -172,12 +172,13 @@ export default function ConversationsPage() {
           <Button
             onClick={() => fetchConversations(currentPage)}
             disabled={isLoading}
-            className="flex-1 sm:flex-none bg-zinc-900 hover:bg-mula-dark text-white"
+            variant="outline"
+            className="flex-1 sm:flex-none border-zinc-200 dark:border-zinc-800"
           >
             <RefreshCcw
               className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
             />
-            Segarkan
+            Segarkan Data
           </Button>
         </div>
       </div>
