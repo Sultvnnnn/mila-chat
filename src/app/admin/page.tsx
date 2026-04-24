@@ -24,6 +24,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from "recharts";
 
@@ -176,22 +177,42 @@ export default function AdminDashboardPage() {
           );
         }
 
-        // Generate Data untuk Chart
-        const groupedByDate: Record<string, number> = {};
+        // Generate Data untuk Chart (GABUNGAN TANGGAL)
+        const groupedByDate: Record<
+          string,
+          { Pesan: number; Eskalasi: number }
+        > = {};
+
+        // Memasukkan data pesan
         convData.forEach((chat) => {
           const dateStr = new Date(chat.updated_at).toLocaleDateString(
             "id-ID",
             { month: "short", day: "numeric" },
           );
-          groupedByDate[dateStr] =
-            (groupedByDate[dateStr] || 0) + (chat.messages?.length || 0);
+          if (!groupedByDate[dateStr])
+            groupedByDate[dateStr] = { Pesan: 0, Eskalasi: 0 };
+          groupedByDate[dateStr].Pesan += chat.messages?.length || 0;
+        });
+
+        // Memasukkan data eskalasi
+        escData?.forEach((esc) => {
+          if (esc.created_at) {
+            const dateStr = new Date(esc.created_at).toLocaleDateString(
+              "id-ID",
+              { month: "short", day: "numeric" },
+            );
+            if (!groupedByDate[dateStr])
+              groupedByDate[dateStr] = { Pesan: 0, Eskalasi: 0 };
+            groupedByDate[dateStr].Eskalasi += 1;
+          }
         });
 
         const formattedChartData = Object.keys(groupedByDate)
           .reverse()
           .map((date) => ({
             name: date,
-            Pesan: groupedByDate[date],
+            Pesan: groupedByDate[date].Pesan,
+            Eskalasi: groupedByDate[date].Eskalasi,
           }));
 
         setChartData(formattedChartData);
@@ -248,7 +269,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* TOMBOL REFRESH (HANYA MUNCUL DI DESKTOP) */}
         <Button
           onClick={fetchDashboardData}
           disabled={isLoading}
@@ -409,17 +429,17 @@ export default function AdminDashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {/* CHART AREA */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm md:col-span-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* CHART AREA 1: INTERAKSI (KIRI) */}
+        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm md:col-span-2 lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <Activity className="h-5 w-5 text-mula" />
-              Tren Interaksi Harian
+              Grafik Interaksi Harian
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full mt-4">
+            <div className="h-[280px] w-full mt-2">
               {isLoading ? (
                 <div className="h-full w-full flex items-center justify-center text-zinc-500 text-sm">
                   Merender visualisasi data...
@@ -432,7 +452,7 @@ export default function AdminDashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={chartData}
-                    margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+                    margin={{ top: 5, right: 20, bottom: 5, left: -20 }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -452,6 +472,7 @@ export default function AdminDashboardPage() {
                       tickLine={false}
                       axisLine={false}
                       dx={-10}
+                      allowDecimals={false}
                     />
                     <Tooltip
                       contentStyle={{
@@ -462,9 +483,15 @@ export default function AdminDashboardPage() {
                       }}
                       itemStyle={{ color: "#bae6fd" }}
                     />
+                    <Legend
+                      verticalAlign="top"
+                      height={36}
+                      wrapperStyle={{ fontSize: "12px" }}
+                    />
                     <Line
                       type="monotone"
                       dataKey="Pesan"
+                      name="Total Pesan AI"
                       stroke="#0284c7"
                       strokeWidth={3}
                       dot={{ r: 4, strokeWidth: 2 }}
@@ -477,15 +504,15 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* STATUS CARD */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm">
+        {/* STATUS CARD (KANAN ATAS) */}
+        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm md:col-span-2 lg:col-span-1 h-full">
           <CardHeader>
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <Clock className="h-5 w-5 text-mula" />
               Status Sistem
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6 mt-4">
+          <CardContent className="space-y-6 mt-2">
             <div>
               <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                 Interaksi Terakhir Terkumpul
@@ -516,6 +543,80 @@ export default function AdminDashboardPage() {
                     Online
                   </span>
                 </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CHART AREA 2: ESKALASI (BAWAH FULL WIDTH) */}
+        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm md:col-span-2 lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Grafik Eskalasi Ke Admin
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[240px] w-full mt-2">
+              {isLoading ? (
+                <div className="h-full w-full flex items-center justify-center text-zinc-500 text-sm">
+                  Merender visualisasi data...
+                </div>
+              ) : chartData.length === 0 ? (
+                <div className="h-full w-full flex items-center justify-center text-zinc-500 text-sm border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg">
+                  Belum ada data eskalasi untuk ditampilkan.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 5, right: 20, bottom: 5, left: -20 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="#52525b"
+                      opacity={0.2}
+                    />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 12, fill: "#71717a" }}
+                      tickLine={false}
+                      axisLine={false}
+                      dy={10}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12, fill: "#71717a" }}
+                      tickLine={false}
+                      axisLine={false}
+                      dx={-10}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#18181b",
+                        borderRadius: "8px",
+                        border: "none",
+                        color: "#fff",
+                      }}
+                      itemStyle={{ color: "#fdba74" }}
+                    />
+                    <Legend
+                      verticalAlign="top"
+                      height={36}
+                      wrapperStyle={{ fontSize: "12px" }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="Eskalasi"
+                      name="Total Permintaan Eskalasi"
+                      stroke="#f97316"
+                      strokeWidth={3}
+                      dot={{ r: 4, strokeWidth: 2 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               )}
             </div>
           </CardContent>
