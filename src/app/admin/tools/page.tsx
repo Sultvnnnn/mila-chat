@@ -79,8 +79,8 @@ export default function ToolsPage() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ketik pertanyaan untuk diuji... (Contoh: Berapa harga kelas?)"
-              className="pl-12 h-14 w-full bg-zinc-50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 text-base focus-visible:ring-1 focus-visible:ring-mula-dark shadow-inner"
+              placeholder="Ketik pertanyaan untuk diuji..."
+              className="pl-12 h-14 w-full bg-zinc-50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 text-base focus-visible:ring-1 focus-visible:ring-mula-dark shadow-inner placeholder:text-ellipsis"
             />
           </div>
           <Button
