@@ -13,7 +13,9 @@ import {
   Plus,
   Save,
   Download,
+  BookOpen,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -471,30 +473,79 @@ export default function NewKnowledgePage() {
 
               {/* Data Preview & Action */}
               {preview.length > 0 && (
-                <div className="mt-8">
+                <div className="mt-8 animate-in slide-in-from-bottom-4 duration-500">
+                  {/* JUDUL PREVIEW & TOMBOL IMPORT */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                    <h4 className="font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <h4 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                       <Database className="h-5 w-5 text-mula-dark dark:text-mula" />
-                      Preview ({preview.length} entries)
+                      Preview Data ({preview.length} entri)
                     </h4>
                     <Button
                       onClick={handleImport}
                       disabled={isUploading}
-                      className="w-full sm:w-auto bg-zinc-900 hover:bg-mula-dark text-white dark:bg-mula dark:text-zinc-900 dark:hover:bg-zinc-100 font-semibold transition-colors"
+                      className="w-full sm:w-auto bg-zinc-900 hover:bg-mula-dark text-white dark:bg-mula dark:text-zinc-900 dark:hover:bg-zinc-100 font-semibold transition-colors shadow-sm"
                     >
                       {isUploading ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : null}
-                      {isUploading ? "Importing..." : "Start Import"}
+                      {isUploading ? "Mengimpor..." : "Start Import"}
                     </Button>
                   </div>
 
-                  <div className="bg-zinc-50 dark:bg-zinc-950 rounded-xl p-4 max-h-72 overflow-y-auto border border-zinc-200 dark:border-zinc-800 shadow-inner">
-                    <pre className="text-xs text-zinc-600 dark:text-zinc-400 font-mono whitespace-pre-wrap">
-                      {JSON.stringify(preview.slice(0, 3), null, 2)}
-                      {preview.length > 3 &&
-                        `\n\n... and ${preview.length - 3} more entries.`}
-                    </pre>
+                  {/* TABULAR DATA PREVIEW */}
+                  <div className="bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                          <tr>
+                            <th className="px-4 py-3 font-medium w-1/3">
+                              Title
+                            </th>
+                            <th className="px-4 py-3 font-medium w-1/2">
+                              Content
+                            </th>
+                            <th className="px-4 py-3 font-medium">Category</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                          {preview.slice(0, 5).map((item, idx) => (
+                            <tr
+                              key={idx}
+                              className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-colors"
+                            >
+                              <td className="px-4 py-4 align-top">
+                                <span className="font-semibold text-zinc-900 dark:text-zinc-100 leading-tight block mt-1">
+                                  {item.title || "-"}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4 align-top">
+                                <p className="text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed mt-1">
+                                  {item.content || "-"}
+                                </p>
+                              </td>
+                              <td className="px-4 py-4 align-top whitespace-nowrap">
+                                <div className="mt-1">
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-none font-medium"
+                                  >
+                                    {item.category || "Uncategorized"}
+                                  </Badge>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* INDIKATOR JIKA DATA LEBIH DARI 5 */}
+                    {preview.length > 5 && (
+                      <div className="p-3 text-center text-xs font-medium text-zinc-500 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800">
+                        ... dan {preview.length - 5} data lainnya siap
+                        di-import.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
