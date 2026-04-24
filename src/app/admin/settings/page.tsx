@@ -93,6 +93,7 @@ type ShortcutDef = { id: string; label: string; key: string };
 const defaultShortcuts: ShortcutDef[] = [
   { id: "open_dashboard", label: "Buka Dashboard Utama", key: "/" },
   { id: "open_conversations", label: "Buka Conversations", key: "Ctrl + M" },
+  { id: "open_escalations", label: "Buka Escalations", key: "Ctrl + E" },
   { id: "focus_chat", label: "Fokus Input Chat", key: "C" },
   { id: "clear_chat", label: "Bersihkan Obrolan", key: "Escape" },
   { id: "open_knowledge", label: "Buka Knowledge Base", key: "Ctrl + K" },
@@ -165,7 +166,15 @@ export default function SettingsPage() {
     const savedShortcuts = localStorage.getItem("mila_shortcuts");
     if (savedShortcuts) {
       try {
-        setShortcuts(JSON.parse(savedShortcuts));
+        const parsedSaved = JSON.parse(savedShortcuts);
+
+        const mergedShortcuts = defaultShortcuts.map((defItem) => {
+          const savedItem = parsedSaved.find((s: any) => s.id === defItem.id);
+
+          return savedItem ? { ...defItem, key: savedItem.key } : defItem;
+        });
+
+        setShortcuts(mergedShortcuts);
       } catch (e) {
         console.error("Local Storage Error: Failed to parse shortcuts.");
       }

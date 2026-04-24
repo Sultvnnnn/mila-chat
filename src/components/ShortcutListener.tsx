@@ -5,6 +5,19 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
 
+// Samakan dengan default di Settings
+const defaultShortcuts = [
+  { id: "open_dashboard", label: "Buka Dashboard Utama", key: "/" },
+  { id: "open_conversations", label: "Buka Conversations", key: "Ctrl + M" },
+  { id: "open_escalations", label: "Buka Escalations", key: "Ctrl + E" },
+  { id: "focus_chat", label: "Fokus Input Chat", key: "C" },
+  { id: "clear_chat", label: "Bersihkan Obrolan", key: "Escape" },
+  { id: "open_knowledge", label: "Buka Knowledge Base", key: "Ctrl + K" },
+  { id: "open_settings", label: "Buka Pengaturan", key: "Ctrl + ," },
+  { id: "toggle_sidebar", label: "Buka/Tutup Sidebar", key: "Ctrl + B" },
+  { id: "toggle_theme", label: "Ganti Tema (Dark/Light)", key: "Alt + T" },
+];
+
 export function ShortcutListener() {
   const router = useRouter();
   const { toast } = useToast();
@@ -12,6 +25,10 @@ export function ShortcutListener() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Abaikan jika lagi ada modal ganti tombol di settings terbuka
+      if (document.body.getAttribute("data-recording-shortcut") === "true")
+        return;
+
       // ignore if focus is on input or textarea
       if (e.key.startsWith("F") && !isNaN(parseInt(e.key.substring(1)))) return;
 
@@ -19,30 +36,24 @@ export function ShortcutListener() {
       // prettier-ignore
       const isTyping = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
 
-      // button shortcuts
+      // button shortcuts logic
       let keyName = e.key === " " ? "Space" : e.key;
       let keyLabel = keyName.length === 1 ? keyName.toUpperCase() : keyName;
       if (e.ctrlKey || e.metaKey) keyLabel = `Ctrl + ${keyLabel}`;
       if (e.altKey) keyLabel = `Alt + ${keyLabel}`;
       if (e.shiftKey && keyName.length === 1) keyLabel = `Shift + ${keyLabel}`;
 
-      // retrieve data from the browser's cache
+      let activeShortcuts = [...defaultShortcuts];
+
+      // Retrieve and MERGE data dari cache (Sama kayak di Settings)
       const savedStr = localStorage.getItem("mila_shortcuts");
-
-      // default fallback
-      let shortcuts = [
-        { id: "focus_chat", label: "Fokus Input Chat", key: "/" },
-        { id: "clear_chat", label: "Bersihkan Obrolan", key: "Escape" },
-        { id: "open_knowledge", label: "Buka Knowledge Base", key: "Ctrl + K" },
-        { id: "open_settings", label: "Buka Pengaturan", key: "Ctrl + ," },
-        { id: "toggle_sidebar", label: "Buka/Tutup Sidebar", key: "Ctrl + B" },
-        // prettier-ignore
-        { id: "toggle_theme", label: "Ganti Tema (Dark/Light)", key: "Alt + T" },
-      ];
-
       if (savedStr) {
         try {
-          shortcuts = JSON.parse(savedStr);
+          const parsedSaved = JSON.parse(savedStr);
+          activeShortcuts = defaultShortcuts.map((defItem) => {
+            const savedItem = parsedSaved.find((s: any) => s.id === defItem.id);
+            return savedItem ? { ...defItem, key: savedItem.key } : defItem;
+          });
         } catch (err) {
           console.error(
             `Gagal mem-parsing shortcuts dari localStorage. Error: ${err}`,
@@ -51,7 +62,7 @@ export function ShortcutListener() {
       }
 
       // check if the button that was pressed is on the list
-      const matchedShortcut = shortcuts.find((s) => s.key === keyLabel);
+      const matchedShortcut = activeShortcuts.find((s) => s.key === keyLabel);
 
       if (!matchedShortcut) return;
 
@@ -82,6 +93,15 @@ export function ShortcutListener() {
           toast({
             title: "💬 Conversations",
             description: "Membuka riwayat obrolan.",
+          });
+          break;
+
+        case "open_escalations":
+          e.preventDefault();
+          router.push("/admin/escalations");
+          toast({
+            title: "🚨 Escalations",
+            description: "Membuka halaman Eskalasi.",
           });
           break;
 
