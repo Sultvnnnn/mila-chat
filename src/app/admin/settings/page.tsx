@@ -457,7 +457,7 @@ export default function SettingsPage() {
             </span>
           </nav>
 
-          {/* --- KONTEN: ATUR PERSONA --- */}
+          {/* KONTEN: ATUR PERSONA */}
           {activeView === "persona" && (
             <div className="space-y-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
@@ -564,7 +564,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* --- KONTEN: GANTI PASSWORD --- */}
+          {/* KONTEN: GANTI PASSWORD */}
           {activeView === "password" && (
             <Card className="p-6 max-w-xl">
               <h2 className="text-xl font-bold mb-1 text-zinc-900 dark:text-zinc-100">
@@ -619,7 +619,7 @@ export default function SettingsPage() {
             </Card>
           )}
 
-          {/* --- KONTEN: SHORTCUT KEYBOARD --- */}
+          {/* KONTEN: SHORTCUT KEYBOARD */}
           {activeView === "shortcuts" && (
             <Card className="p-6 max-w-2xl">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
