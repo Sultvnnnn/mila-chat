@@ -21,6 +21,7 @@ import {
   KeyRound,
   Keyboard,
   ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Drawer,
@@ -32,6 +33,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 type AIConfig = {
   role: string;
@@ -48,7 +50,7 @@ const defaultIdConfig: AIConfig = {
   rules: '1. STRICT LANGUAGE: Kamu WAJIB menjawab murni dalam BAHASA INDONESIA yang luwes.\n2. SAPAAN: Gunakan panggilan "Ka" atau "Kakak" untuk user. JANGAN gunakan "Anda" atau "Kamu".\n3. NO HALLUCINATION: Jangan mengarang jadwal/harga yang tidak ada di data referensi.\n4. NO STAGE DIRECTIONS: Dilarang menulis *tersenyum*, *berpikir*, dll.\n5. LOCATION SOP: Ingatkan: KAIA (Matras disediakan), Svasana (Bawa matras sendiri).',
   guardrails: 'Topik yang DIIZINKAN hanya: Yoga, Jadwal, Harga, Lokasi, Fasilitas, Reschedule.\nJIKA user bertanya soal Politik, Coding, Resep, Curhat Asmara, atau General Knowledge lain:\n1. TOLAK JAWABANNYA. Jangan beri informasi sedikitpun tentang topik itu.\n2. Gunakan template penolakan ini: "Waduh, maaf ya Ka. Mila cuma ngerti seputar yoga dan studio MULA aja nih 😅 Ada yang bisa Mila bantu soal kelas?"',
   reschedule: "1. Bandingkan Jam Sekarang dengan Jam Kelas.\n2. Hitung mundur durasinya. Ingat: AM ke PM itu durasinya PANJANG.\n3. Jika sisa waktu > 3 Jam: IZINKAN.\n4. Jika sisa waktu < 3 Jam: TOLAK (System Locked).",
-  style: '- FORMAT LIST WAJIB: Jika user menanyakan jadwal, harga, fasilitas, atau daftar kelas, kamu WAJIB memecahnya menjadi Markdown bullet points (gunakan simbol "-"). DILARANG KERAS menggabungnya dalam satu paragraf panjang yang dipisah koma.\n- Contoh yang benar:\n  - Senin: Hatha Flow jam 08.00\n  - Selasa: Vinyasa jam 09.00\n- Nada: Hangat dan sopan.',
+  style: '- FORMAT LIST WAJIB: Jika user menanyakan jadwal, harga, fasilitas, atau daftar kelas, kamu WAJIB memecahnya menjadi Markdown bullet points (gunakan simbol "-"). DILARANG KERAS menggabungnya dalam satu paragraf panjang yang dipisah koma.\n- Contoh yang benar:\n   - Senin: Hatha Flow jam 08.00\n   - Selasa: Vinyasa jam 09.00\n- Nada: Hangat dan sopan.',
 };
 
 // Data Default Bahasa Inggris
@@ -58,7 +60,7 @@ const defaultEnConfig: AIConfig = {
   rules: '1. STRICT LANGUAGE: You MUST answer purely in ENGLISH. Do NOT use Indonesian words.\n2. ADDRESSING USER: Use "You". Do NOT use Indonesian terms like "Ka" or "Kakak".\n3. NO HALLUCINATION: Do not make up schedules/prices that are not in reference data.\n4. NO STAGE DIRECTIONS: Do not write *smile*, *think*, etc.\n5. LOCATION SOP: Reminder: KAIA (Mats provided), Svasana (Bring your own mat).',
   guardrails: "Only the following topics are ALLOWED: Yoga, Schedule, Price, Location, Facilities, Reschedule.\nIF the user asks about Politics, Coding, Recipes, Love Problems, or other General Knowledge:\n1. REFUSE TO ANSWER. Do not provide any information about that topic.\n2. Use this exact polite rejection: \"Oops, I'm afraid that's out of my expertise! 😅 I can only assist you with MULA Yoga studio info. Is there anything else about classes I can help with?\"",
   reschedule: "1. Compare Current Time with Class Time.\n2. Count down the duration.\n3. If remaining time > 3 hours: ALLOW.\n4. If remaining time < 3 hours: REJECT (System Locked).",
-  style: '- MANDATORY LIST FORMATTING: When explaining schedules, prices, facilities, or multiple items, you MUST break them down into Markdown bullet points using the "-" symbol. DO NOT combine multiple items into a single long comma-separated paragraph.\n- Example: \n  - Monday: Hatha Flow at 08.00\n  - Tuesday: Vinyasa at 09.00\n- Tone: Warm and welcoming.',
+  style: '- MANDATORY LIST FORMATTING: When explaining schedules, prices, facilities, or multiple items, you MUST break them down into Markdown bullet points using the "-" symbol. DO NOT combine multiple items into a single long comma-separated paragraph.\n- Example: \n   - Monday: Hatha Flow at 08.00\n   - Tuesday: Vinyasa at 09.00\n- Tone: Warm and welcoming.',
 };
 
 // Helper Data untuk Label UI
@@ -102,7 +104,6 @@ const defaultShortcuts: ShortcutDef[] = [
 export default function SettingsPage() {
   const { toast } = useToast();
 
-  // STATE NAVIGASI MENU
   const [activeView, setActiveView] = useState<
     "menu" | "persona" | "password" | "shortcuts"
   >("menu");
@@ -127,7 +128,6 @@ export default function SettingsPage() {
 
   const activeConfig = activeLang === "id" ? idConfig : enConfig;
 
-  // FETCH AI SETTINGS FROM DATABASE & LOCAL SHORTCUTS
   useEffect(() => {
     const fetchSettings = async () => {
       setIsLoading(true);
@@ -162,7 +162,6 @@ export default function SettingsPage() {
 
     fetchSettings();
 
-    // Load Shortcuts dari Local Storage
     const savedShortcuts = localStorage.getItem("mila_shortcuts");
     if (savedShortcuts) {
       try {
@@ -173,7 +172,6 @@ export default function SettingsPage() {
     }
   }, []);
 
-  // EVENT LISTENER UNTUK MEREKAM SHORTCUT KEYBOARD
   useEffect(() => {
     if (!recordingId) {
       document.body.removeAttribute("data-recording-shortcut");
@@ -197,7 +195,6 @@ export default function SettingsPage() {
         return;
       }
 
-      // Format nama tombol (contoh: Ctrl + K)
       let keyLabel = keyName.length === 1 ? keyName.toUpperCase() : keyName;
       if (e.ctrlKey || e.metaKey) keyLabel = "Ctrl + " + keyLabel;
       if (e.altKey) keyLabel = "Alt + " + keyLabel;
@@ -217,7 +214,6 @@ export default function SettingsPage() {
     };
   }, [recordingId]);
 
-  // SIMPAN SHORTCUTS KE LOCAL STORAGE
   const handleSaveShortcuts = () => {
     localStorage.setItem("mila_shortcuts", JSON.stringify(shortcuts));
     toast({
@@ -227,7 +223,6 @@ export default function SettingsPage() {
     setHasUnsavedChanges(false);
   };
 
-  // RESET SHORTCUTS KE DEFAULT
   const handleResetShortcuts = () => {
     setShortcuts(defaultShortcuts);
     localStorage.removeItem("mila_shortcuts");
@@ -238,7 +233,6 @@ export default function SettingsPage() {
     });
   };
 
-  // SAVE TO DATABASE (Persona)
   const handleSave = async () => {
     setIsLoading(true);
     const { error } = await supabase.from("ai_settings").upsert({
@@ -279,7 +273,6 @@ export default function SettingsPage() {
     }
   };
 
-  // RESET TO DEFAULT (Persona)
   const handleReset = async () => {
     const confirmReset = window.confirm(
       "Are you sure you want to reset the configuration to default? All custom changes will be lost.",
@@ -319,7 +312,6 @@ export default function SettingsPage() {
     }
   };
 
-  // UPDATE PASSWORD LOGIC
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -366,74 +358,86 @@ export default function SettingsPage() {
 
   return (
     <div className="flex-1 p-4 md:p-8 pt-6 max-w-5xl mx-auto relative overflow-x-hidden">
-      {/* HALAMAN DAFTAR MENU UTAMA     */}
-      {activeView === "menu" && (
-        <div className="space-y-6 animate-in fade-in duration-300">
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-mula-light dark:bg-mula-dark/20 text-mula-dark dark:text-mula rounded-xl shrink-0 shadow-sm border border-mula/20">
+            <Settings className="h-6 w-6" />
+          </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-serif">
               Pengaturan Sistem
             </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 mb-6">
-              Kelola persona AI, keamanan akun, dan preferensi dashboard Anda.
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+              Kelola persona AI, keamanan akun, dan preferensi dashboard.
             </p>
           </div>
+        </div>
+      </div>
 
-          <div className="flex flex-col gap-3 max-w-3xl">
-            {/* Menu 1: Persona */}
-            <div
-              onClick={() => setActiveView("persona")}
-              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl cursor-pointer hover:border-mula hover:shadow-sm transition-all group flex items-center gap-4"
-            >
-              <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg group-hover:bg-mula/20 transition-colors">
-                <Bot className="h-5 w-5 text-zinc-700 dark:text-zinc-300 group-hover:text-mula-dark" />
+      {/* HALAMAN DAFTAR MENU UTAMA */}
+      {activeView === "menu" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-300">
+          {/* Menu 1: Persona */}
+          <div
+            onClick={() => setActiveView("persona")}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 md:p-6 rounded-2xl cursor-pointer hover:border-mula dark:hover:border-mula hover:shadow-md transition-all group flex flex-col justify-between min-h-[140px]"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl group-hover:bg-mula/20 group-hover:border-mula/30 transition-colors">
+                <Bot className="h-6 w-6 text-zinc-700 dark:text-zinc-300 group-hover:text-mula-dark dark:group-hover:text-mula" />
               </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-100">
-                  Atur Persona MILA
-                </h3>
-                <p className="text-sm text-zinc-500">
-                  Kelola identitas, batasan, dan aturan main AI.
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-zinc-300 group-hover:text-zinc-500 transition-colors mr-2" />
+              <ChevronRight className="h-5 w-5 text-zinc-300 group-hover:text-zinc-500 transition-colors" />
             </div>
-
-            {/* Menu 2: Password */}
-            <div
-              onClick={() => setActiveView("password")}
-              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl cursor-pointer hover:border-mula hover:shadow-sm transition-all group flex items-center gap-4"
-            >
-              <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg group-hover:bg-mula/20 transition-colors">
-                <KeyRound className="h-5 w-5 text-zinc-700 dark:text-zinc-300 group-hover:text-mula-dark" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-100">
-                  Ganti Password
-                </h3>
-                <p className="text-sm text-zinc-500">
-                  Perbarui kata sandi untuk keamanan dashboard admin.
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-zinc-300 group-hover:text-zinc-500 transition-colors mr-2" />
+            <div>
+              <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100 mb-1">
+                Atur Persona MILA
+              </h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Kelola identitas, instruksi batasan, dan gaya bahasa AI.
+              </p>
             </div>
+          </div>
 
-            {/* Menu 3: Shortcuts */}
-            <div
-              onClick={() => setActiveView("shortcuts")}
-              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl cursor-pointer hover:border-mula hover:shadow-sm transition-all group flex items-center gap-4"
-            >
-              <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg group-hover:bg-mula/20 transition-colors">
-                <Keyboard className="h-5 w-5 text-zinc-700 dark:text-zinc-300 group-hover:text-mula-dark" />
+          {/* Menu 2: Password */}
+          <div
+            onClick={() => setActiveView("password")}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 md:p-6 rounded-2xl cursor-pointer hover:border-mula dark:hover:border-mula hover:shadow-md transition-all group flex flex-col justify-between min-h-[140px]"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl group-hover:bg-mula/20 group-hover:border-mula/30 transition-colors">
+                <ShieldCheck className="h-6 w-6 text-zinc-700 dark:text-zinc-300 group-hover:text-mula-dark dark:group-hover:text-mula" />
               </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-100">
-                  Shortcut Keyboard
-                </h3>
-                <p className="text-sm text-zinc-500">
-                  Kombinasi tombol cepat untuk mempercepat navigasi.
-                </p>
+              <ChevronRight className="h-5 w-5 text-zinc-300 group-hover:text-zinc-500 transition-colors" />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100 mb-1">
+                Keamanan Akun
+              </h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Ganti kata sandi akses untuk mengamankan dashboard admin.
+              </p>
+            </div>
+          </div>
+
+          {/* Menu 3: Shortcuts */}
+          <div
+            onClick={() => setActiveView("shortcuts")}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 md:p-6 rounded-2xl cursor-pointer hover:border-mula dark:hover:border-mula hover:shadow-md transition-all group flex flex-col justify-between min-h-[140px] md:col-span-2 lg:col-span-1"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl group-hover:bg-mula/20 group-hover:border-mula/30 transition-colors">
+                <Keyboard className="h-6 w-6 text-zinc-700 dark:text-zinc-300 group-hover:text-mula-dark dark:group-hover:text-mula" />
               </div>
-              <ChevronRight className="h-5 w-5 text-zinc-300 group-hover:text-zinc-500 transition-colors mr-2" />
+              <ChevronRight className="h-5 w-5 text-zinc-300 group-hover:text-zinc-500 transition-colors" />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100 mb-1">
+                Shortcut Keyboard
+              </h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Atur kombinasi tombol cepat untuk produktivitas maksimal.
+              </p>
             </div>
           </div>
         </div>
@@ -442,121 +446,121 @@ export default function SettingsPage() {
       {/* HALAMAN DETAIL & BREADCRUMB */}
       {activeView !== "menu" && (
         <div className="space-y-6 animate-in slide-in-from-right-8 fade-in duration-300">
+          {/* Navigation Breadcrumb */}
           <nav className="flex items-center text-sm text-zinc-500 dark:text-zinc-400 font-medium mb-6">
             <button
               onClick={() => setActiveView("menu")}
               className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
             >
-              Settings
+              Pengaturan Sistem
             </button>
             <span className="mx-2 text-zinc-300 dark:text-zinc-700">/</span>
             <span className="text-zinc-900 dark:text-zinc-100 bg-mula-light dark:bg-mula-dark/20 px-2 py-0.5 rounded-md text-mula-dark dark:text-mula">
               {activeView === "persona" && "Atur Persona"}
-              {activeView === "password" && "Ganti Password"}
+              {activeView === "password" && "Keamanan Akun"}
               {activeView === "shortcuts" && "Shortcut Keyboard"}
             </span>
           </nav>
 
           {/* KONTEN: ATUR PERSONA */}
           {activeView === "persona" && (
-            <div className="space-y-4">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold">Atur Persona MILA</h2>
-                  <p className="text-sm text-zinc-500">
-                    Sesuaikan karakter dan batasan instruksi AI.
-                  </p>
-                </div>
-                <div className="hidden md:flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleReset}
-                    disabled={isResetting || isLoading}
-                    className="w-full h-12 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 border-zinc-200 dark:border-zinc-800 transition-colors"
-                  >
-                    Reset ke Default
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    disabled={isLoading || isResetting}
-                    className="bg-zinc-900 hover:bg-mula-dark text-white"
-                  >
-                    <Save className="h-4 w-4 mr-2" />{" "}
-                    {isLoading ? "Saving..." : "Save Configuration"}
-                  </Button>
-                </div>
-              </div>
-
-              <Card className="bg-white dark:bg-zinc-900 shadow-sm overflow-hidden border-zinc-200 dark:border-zinc-800">
-                <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50">
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* TAB */}
+                <div className="relative flex p-1 bg-zinc-100 dark:bg-zinc-950/50 rounded-lg w-full md:w-[350px] shrink-0 border border-zinc-200 dark:border-zinc-800/50">
+                  <div
+                    className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] rounded-md bg-mula dark:bg-mula/90 shadow-sm transition-transform duration-500 ease-out ${
+                      activeLang === "id" ? "translate-x-0" : "translate-x-full"
+                    }`}
+                  />
                   <button
                     onClick={() => setActiveLang("id")}
-                    className={`flex-1 py-4 text-sm font-bold flex justify-center transition-colors ${
+                    className={`relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold transition-colors duration-300 ${
                       activeLang === "id"
-                        ? "bg-white dark:bg-zinc-900 text-mula-dark dark:text-mula border-b-2 border-mula-dark dark:border-mula"
-                        : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
+                        ? "text-zinc-900"
+                        : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                     }`}
                   >
                     Bahasa Indonesia
                   </button>
                   <button
                     onClick={() => setActiveLang("en")}
-                    className={`flex-1 py-4 text-sm font-bold flex justify-center transition-colors ${
+                    className={`relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold transition-colors duration-300 ${
                       activeLang === "en"
-                        ? "bg-white dark:bg-zinc-900 text-mula-dark dark:text-mula border-b-2 border-mula-dark dark:border-mula"
-                        : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
+                        ? "text-zinc-900"
+                        : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                     }`}
                   >
                     English
                   </button>
                 </div>
-                <CardContent className="p-4 md:p-6 bg-zinc-50/30 dark:bg-zinc-950/30">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {configFields.map((field) => (
-                      <div
-                        key={field}
-                        onClick={() => setEditingField(field)}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-xl cursor-pointer hover:border-mula dark:hover:border-mula hover:shadow-sm flex flex-col h-full transition-colors group"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
-                              {fieldLabels[field].title}
-                            </h3>
-                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                              {fieldLabels[field].desc}
-                            </p>
-                          </div>
-                          <div className="p-1.5 bg-zinc-50 dark:bg-zinc-800 rounded-full shrink-0 group-hover:bg-mula/20 transition-colors">
-                            <Edit3 className="h-4 w-4 text-mula-dark dark:text-mula" />
-                          </div>
-                        </div>
-                        <div className="mt-2 pt-3 border-t border-zinc-100 dark:border-zinc-800/50">
-                          <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-3 whitespace-pre-wrap">
-                            {activeConfig[field]}
-                          </p>
-                        </div>
+
+                <div className="hidden md:flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleReset}
+                    disabled={isResetting || isLoading}
+                    className="h-10 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 border-zinc-200 dark:border-zinc-800 transition-colors"
+                  >
+                    Reset ke Default
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={isLoading || isResetting}
+                    className="h-10 bg-zinc-900 hover:bg-mula-dark text-white hover:text-zinc-900 transition-colors"
+                  >
+                    <Save className="h-4 w-4 mr-2" />{" "}
+                    {isLoading ? "Menyimpan..." : "Simpan Persona"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {configFields.map((field) => (
+                  <div
+                    key={field}
+                    onClick={() => setEditingField(field)}
+                    className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-xl cursor-pointer hover:border-mula dark:hover:border-mula hover:shadow-md flex flex-col h-full transition-all group"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-100">
+                          {fieldLabels[field].title}
+                        </h3>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                          {fieldLabels[field].desc}
+                        </p>
                       </div>
-                    ))}
+                      <div className="p-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-lg shrink-0 group-hover:bg-mula/20 group-hover:border-mula/30 transition-colors">
+                        <Edit3 className="h-4 w-4 text-zinc-500 group-hover:text-mula-dark dark:group-hover:text-mula" />
+                      </div>
+                    </div>
+                    <div className="mt-2 pt-3 border-t border-zinc-100 dark:border-zinc-800/50 flex-1 flex flex-col">
+                      <div className="bg-zinc-50/50 dark:bg-zinc-950/30 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800/50 flex-1 overflow-hidden">
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-3 whitespace-pre-wrap font-mono leading-relaxed">
+                          {activeConfig[field]}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                ))}
+              </div>
 
               {/* ACTION BUTTONS (MOBILE ONLY) */}
               <div className="md:hidden flex flex-col gap-3 mt-4 pb-6">
                 <Button
                   onClick={handleSave}
                   disabled={isLoading || isResetting}
-                  className="w-full h-12 font-bold bg-zinc-900 text-white"
+                  className="w-full h-12 font-bold bg-zinc-900 hover:bg-mula-dark text-white hover:text-zinc-900"
                 >
-                  <Save className="h-4 w-4 mr-2" />{" "}
-                  {isLoading ? "Saving..." : "Save Configuration"}
+                  <Save className="h-5 w-5 mr-2" />{" "}
+                  {isLoading ? "Menyimpan..." : "Simpan Persona"}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={handleReset}
                   disabled={isResetting || isLoading}
-                  className="w-full h-12 text-red-600"
+                  className="w-full h-12 text-red-600 border-zinc-200 dark:border-zinc-800"
                 >
                   Reset ke Default
                 </Button>
@@ -566,53 +570,58 @@ export default function SettingsPage() {
 
           {/* KONTEN: GANTI PASSWORD */}
           {activeView === "password" && (
-            <Card className="p-6 max-w-xl">
-              <h2 className="text-xl font-bold mb-1 text-zinc-900 dark:text-zinc-100">
-                Ganti Password Admin
-              </h2>
-              <p className="text-sm text-zinc-500 mb-6">
+            <Card className="p-6 md:p-8 max-w-xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm rounded-2xl">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2.5 bg-mula/20 rounded-lg">
+                  <ShieldCheck className="h-5 w-5 text-mula-dark dark:text-mula" />
+                </div>
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+                  Update Kata Sandi
+                </h2>
+              </div>
+              <p className="text-sm text-zinc-500 mb-8 pl-14">
                 Pastikan password baru Anda kuat dan tidak mudah ditebak.
               </p>
 
-              <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <form onSubmit={handleUpdatePassword} className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     Password Baru
                   </label>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Minimal 8 karakter"
+                    placeholder="Minimal 6 karakter..."
                     required
-                    className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all"
+                    className="flex h-12 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-mula-dark dark:focus:ring-mula transition-all shadow-inner placeholder:text-zinc-400"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     Konfirmasi Password Baru
                   </label>
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Ketik ulang password baru"
+                    placeholder="Ketik ulang password baru..."
                     required
-                    className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all"
+                    className="flex h-12 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-mula-dark dark:focus:ring-mula transition-all shadow-inner placeholder:text-zinc-400"
                   />
                 </div>
 
-                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 mt-6">
+                <div className="pt-4 mt-6">
                   <Button
                     type="submit"
                     onClick={handleUpdatePassword}
                     disabled={
                       isUpdatingPassword || !newPassword || !confirmPassword
                     }
-                    className="bg-zinc-900 hover:bg-mula-dark text-white font-medium"
+                    className="w-full h-12 bg-zinc-900 hover:bg-mula-dark text-white hover:text-zinc-900 font-bold text-base transition-colors rounded-xl"
                   >
-                    {isUpdatingPassword ? "Updating..." : "Update Password"}
+                    {isUpdatingPassword ? "Menyimpan..." : "Simpan Password"}
                   </Button>
                 </div>
               </form>
@@ -621,13 +630,18 @@ export default function SettingsPage() {
 
           {/* KONTEN: SHORTCUT KEYBOARD */}
           {activeView === "shortcuts" && (
-            <Card className="p-6 max-w-2xl">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <Card className="p-6 md:p-8 max-w-3xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm rounded-2xl">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8 border-b border-zinc-100 dark:border-zinc-800/50 pb-6">
                 <div>
-                  <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                    Kustomisasi Shortcut
-                  </h2>
-                  <p className="text-sm text-zinc-500 mt-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2.5 bg-mula/20 rounded-lg">
+                      <Keyboard className="h-5 w-5 text-mula-dark dark:text-mula" />
+                    </div>
+                    <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+                      Kustomisasi Shortcut
+                    </h2>
+                  </div>
+                  <p className="text-sm text-zinc-500 pl-14">
                     Klik tombol di bawah lalu tekan kombinasi keyboard yang Anda
                     inginkan.
                   </p>
@@ -636,16 +650,16 @@ export default function SettingsPage() {
                   <Button
                     variant="outline"
                     onClick={handleResetShortcuts}
-                    className="text-zinc-600"
+                    className="text-zinc-600 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 h-10"
                   >
                     <RefreshCcw className="h-4 w-4 mr-2" /> Reset
                   </Button>
                   <Button
                     onClick={handleSaveShortcuts}
-                    className={`transition-colors duration-200 ${
+                    className={`h-10 transition-colors duration-200 ${
                       hasUnsavedChanges
-                        ? "bg-amber-500 hover:bg-amber-600 text-amber-950 font-semibold border border-amber-600/20"
-                        : "bg-zinc-900 hover:bg-mula-dark text-white"
+                        ? "bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold border border-amber-600/20 shadow-md shadow-amber-500/20"
+                        : "bg-zinc-900 hover:bg-mula-dark text-white hover:text-zinc-900"
                     }`}
                   >
                     {hasUnsavedChanges && (
@@ -660,26 +674,26 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {shortcuts.map((shortcut) => (
                   <div
                     key={shortcut.id}
-                    className="flex items-center justify-between p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50"
+                    className="flex items-center justify-between p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 hover:border-mula/50 transition-colors"
                   >
-                    <span className="font-medium text-sm text-zinc-700 dark:text-zinc-300">
+                    <span className="font-semibold text-sm text-zinc-700 dark:text-zinc-300">
                       {shortcut.label}
                     </span>
 
                     <button
                       onClick={() => setRecordingId(shortcut.id)}
-                      className={`min-w-[120px] px-4 py-2 text-sm font-semibold rounded-lg border-2 transition-all ${
+                      className={`min-w-[100px] px-3 py-1.5 text-xs font-bold font-mono rounded-lg border-b-2 transition-all active:translate-y-px active:border-b-0 ${
                         recordingId === shortcut.id
-                          ? "border-mula text-mula-dark bg-mula/10 animate-pulse"
-                          : "border-zinc-200 bg-white hover:border-zinc-300 text-zinc-700 shadow-sm"
+                          ? "border-mula text-mula-dark bg-mula/20 animate-pulse shadow-inner"
+                          : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 shadow-sm"
                       }`}
                     >
                       {recordingId === shortcut.id
-                        ? "Tekan tombol..."
+                        ? "Mengetik..."
                         : shortcut.key}
                     </button>
                   </div>
@@ -697,9 +711,12 @@ export default function SettingsPage() {
       >
         <DrawerContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 outline-none flex flex-col h-[95dvh] sm:h-[80vh] sm:max-w-2xl sm:mx-auto w-full">
           <div className="w-full flex flex-col h-full">
-            <DrawerHeader className="text-left shrink-0 pb-2">
+            <DrawerHeader className="text-left shrink-0 pb-4 border-b border-zinc-100 dark:border-zinc-800/50">
               <DrawerTitle className="text-zinc-900 dark:text-zinc-100 text-xl flex items-center justify-between">
-                {editingField ? fieldLabels[editingField].title : ""}
+                <div className="flex items-center gap-2">
+                  <Edit3 className="h-5 w-5 text-mula" />
+                  {editingField ? fieldLabels[editingField].title : ""}
+                </div>
                 <DrawerClose asChild>
                   <Button
                     variant="ghost"
@@ -710,25 +727,28 @@ export default function SettingsPage() {
                   </Button>
                 </DrawerClose>
               </DrawerTitle>
-              <DrawerDescription className="text-zinc-500 dark:text-zinc-400">
+              <DrawerDescription className="text-zinc-500 dark:text-zinc-400 mt-1">
                 {editingField ? fieldLabels[editingField].desc : ""}
               </DrawerDescription>
             </DrawerHeader>
-            <div className="p-4 flex-1 flex flex-col min-h-0">
+
+            <div className="p-4 md:p-6 flex-1 flex flex-col min-h-0 bg-zinc-50/50 dark:bg-zinc-950/50">
               {editingField && (
                 <textarea
                   value={activeConfig[editingField]}
                   onChange={(e) =>
                     handleConfigChange(editingField, e.target.value)
                   }
-                  className="flex-1 w-full h-full p-4 text-base bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mula-dark dark:focus:ring-mula resize-none overflow-y-auto leading-relaxed shadow-inner"
+                  className="flex-1 w-full h-full p-5 text-base font-mono bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-mula-dark dark:focus:ring-mula resize-none overflow-y-auto leading-relaxed shadow-sm placeholder:text-zinc-300"
+                  placeholder="Ketik instruksi atau aturan di sini..."
                 />
               )}
             </div>
-            <DrawerFooter className="pt-2 pb-6 shrink-0 mt-auto">
+
+            <DrawerFooter className="pt-4 pb-6 shrink-0 mt-auto border-t border-zinc-100 dark:border-zinc-800/50 bg-white dark:bg-zinc-950">
               <DrawerClose asChild>
-                <Button className="w-full h-12 text-base font-bold bg-mula hover:bg-mula-dark text-zinc-900 shadow-md">
-                  Selesai Edit
+                <Button className="w-full h-14 text-base font-bold bg-zinc-900 hover:bg-mula-dark text-white hover:text-zinc-900 shadow-md transition-colors rounded-xl">
+                  Simpan Teks & Tutup Panel
                 </Button>
               </DrawerClose>
             </DrawerFooter>
