@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 export async function POST(req: Request) {
@@ -5,13 +6,16 @@ export async function POST(req: Request) {
     const { conversationId, messageContent } = await req.json();
 
     if (!conversationId || !messageContent) {
-      return Response.json(
+      console.error(
+        "[ADMIN API ERROR] Missing required fields: conversationId or messageContent.",
+      );
+      return NextResponse.json(
         { success: false, error: "Missing fields." },
         { status: 400 },
       );
     }
 
-    // Ambil pesan yang ada
+    //! Fetch existing messages from the database
     const { data: conversation, error: fetchError } = await supabase
       .from("conversations")
       .select("messages")
@@ -19,18 +23,21 @@ export async function POST(req: Request) {
       .single();
 
     if (fetchError || !conversation) {
-      return Response.json(
+      console.error(
+        `[ADMIN API ERROR] Conversation not found for ID: ${conversationId}`,
+      );
+      return NextResponse.json(
         { success: false, error: "Conversation not found." },
         { status: 404 },
       );
     }
 
-    // Buat pesan admin
+    //! Create the admin message payload
     const adminMessage = {
       id: crypto.randomUUID(),
       role: "assistant",
       content: messageContent,
-      createdAt: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
       isAdmin: true,
     };
 
@@ -40,7 +47,7 @@ export async function POST(req: Request) {
 
     const updatedMessages = [...currentMessages, adminMessage];
 
-    // Update ke DB — trigger Supabase Realtime ke client
+    //! Update the database (This triggers the Supabase Realtime in Baileys!)
     const { error: updateError } = await supabase
       .from("conversations")
       .update({
@@ -53,10 +60,16 @@ export async function POST(req: Request) {
       throw updateError;
     }
 
-    return Response.json({ success: true });
+    console.log(
+      `[ADMIN API SYSTEM] Successfully saved admin reply for chat ID: ${conversationId}`,
+    );
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error sending admin reply:", error);
-    return Response.json(
+    console.error(
+      "\n[ADMIN API CRITICAL ERROR] Failed to process admin reply:",
+      error,
+    );
+    return NextResponse.json(
       { success: false, error: "Internal server error." },
       { status: 500 },
     );

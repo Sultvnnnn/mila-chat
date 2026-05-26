@@ -495,9 +495,40 @@ export default function EscalationsPage() {
                   </h3>
                 </div>
                 <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground font-mono bg-secondary px-2 py-1 rounded-md">
-                    ID: {ticket.conversation_id.split("-")[0]}...
-                  </span>
+                  {/* DETEKSI CHANNEL: WHATSAPP OR WEB */}
+                  {ticket.conversation_id.startsWith("wa-") ? (
+                    ticket.conversation_id.includes("@lid") ? (
+                      // Tampilan khusus untuk akun LID (Nomor disamarkan WA)
+                      <span
+                        className="text-xs text-amber-600 dark:text-amber-400 font-semibold font-mono bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-md flex items-center gap-1 z-10 cursor-help"
+                        title="WhatsApp menyembunyikan nomor ini (LID). Silakan cari nama profil pengguna secara manual di pencarian WA Web."
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        WA: Hidden (LID) 🔒
+                      </span>
+                    ) : (
+                      // Tampilan normal untuk nomor biasa yang bisa diklik
+                      <a
+                        href={`https://wa.me/${ticket.conversation_id.replace("wa-", "").split("@")[0]}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold font-mono bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-md hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors flex items-center gap-1 z-10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        WA: +
+                        {
+                          ticket.conversation_id
+                            .replace("wa-", "")
+                            .split("@")[0]
+                        }{" "}
+                        ↗
+                      </a>
+                    )
+                  ) : (
+                    <span className="text-xs text-muted-foreground font-mono bg-secondary px-2 py-1 rounded-md">
+                      Web ID: {ticket.conversation_id.split("-")[0]}
+                    </span>
+                  )}
 
                   {/* Tombol hapus/balas di-hide kalau lagi mode milih */}
                   {!isBulkMode && (
@@ -591,9 +622,24 @@ export default function EscalationsPage() {
                   </h3>
                 </div>
                 <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground font-mono bg-secondary px-2 py-1 rounded-md">
-                    ID: {ticket.conversation_id.split("-")[0]}...
-                  </span>
+                  {/* DETEKSI CHANNEL DI RESOLVED TAB */}
+                  {ticket.conversation_id.startsWith("wa-") ? (
+                    <a
+                      href={`https://wa.me/${ticket.conversation_id.replace("wa-", "").split("@")[0]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold font-mono bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-md hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors flex items-center gap-1 z-10"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      WA: +
+                      {ticket.conversation_id.replace("wa-", "").split("@")[0]}{" "}
+                      ↗
+                    </a>
+                  ) : (
+                    <span className="text-xs text-muted-foreground font-mono bg-secondary px-2 py-1 rounded-md">
+                      Web ID: {ticket.conversation_id.split("-")[0]}
+                    </span>
+                  )}
 
                   {!isBulkMode && (
                     <div className="flex items-center gap-1">
@@ -647,9 +693,27 @@ export default function EscalationsPage() {
                 <Headphones className="h-5 w-5 text-zinc-900 dark:text-zinc-100" />
                 Sesi Live Chat
               </SheetTitle>
-              <p className="text-xs text-muted-foreground mt-1 font-mono">
-                ID: {selectedTicket?.conversation_id}
-              </p>
+              {/* LINK AKSES WHATSAPP DI PANEL SHEET */}
+              {selectedTicket?.conversation_id.startsWith("wa-") ? (
+                <a
+                  href={`https://wa.me/${selectedTicket.conversation_id.replace("wa-", "").split("@")[0]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold font-mono mt-1 inline-flex items-center gap-1 hover:underline"
+                >
+                  WhatsApp: +
+                  {
+                    selectedTicket.conversation_id
+                      .replace("wa-", "")
+                      .split("@")[0]
+                  }{" "}
+                  ↗
+                </a>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1 font-mono">
+                  ID: {selectedTicket?.conversation_id}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
